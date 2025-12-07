@@ -23,7 +23,7 @@ export function SongCard({ song, onClick }: SongCardProps) {
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            {/* Title and Composer */}
+            {/* Título e Compositor */}
             <h3 className="font-display text-base font-semibold text-foreground leading-tight mb-1 truncate">
               {song.title}
             </h3>
@@ -44,7 +44,7 @@ export function SongCard({ song, onClick }: SongCardProps) {
               ))}
             </div>
 
-            {/* Available Resources */}
+            {/* Recursos Disponíveis */}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               {song.hasScore && (
                 <div className="flex items-center gap-1">
@@ -80,7 +80,7 @@ export function SongCard({ song, onClick }: SongCardProps) {
             </div>
           </div>
 
-          {/* Arrow */}
+          {/* Seta */}
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted group-hover:bg-gold/10 transition-colors">
             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-gold transition-colors" />
           </div>

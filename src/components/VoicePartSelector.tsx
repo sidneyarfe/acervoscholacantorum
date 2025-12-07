@@ -30,7 +30,7 @@ export function VoicePartSelector({ selectedVoice, onSelectVoice }: VoicePartSel
               animationDelay: `${index * 50}ms`,
             }}
           >
-            {/* Voice Circle */}
+            {/* Círculo do Naipe */}
             <div
               className={cn(
                 "w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold font-display mb-2 transition-all duration-300",
@@ -44,7 +44,7 @@ export function VoicePartSelector({ selectedVoice, onSelectVoice }: VoicePartSel
               {voice.abbreviation}
             </div>
             
-            {/* Voice Name */}
+            {/* Nome do Naipe */}
             <span
               className={cn(
                 "text-xs font-medium transition-colors",
@@ -54,7 +54,7 @@ export function VoicePartSelector({ selectedVoice, onSelectVoice }: VoicePartSel
               {voice.name}
             </span>
 
-            {/* Selection indicator */}
+            {/* Indicador de seleção */}
             {isSelected && (
               <div
                 className={cn(

@@ -24,7 +24,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
 
   const filteredSongs = useMemo(() => {
     return MOCK_SONGS.filter((song) => {
-      // Search query filter
+      // Filtro de busca
       const matchesSearch =
         !searchQuery ||
         song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -33,11 +33,11 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
           tag.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
-      // Voicing type filter
+      // Filtro de tipo de vozes
       const matchesVoicing =
         activeFilter === "all" || song.voicingType === activeFilter;
 
-      // Additional filters
+      // Filtros adicionais
       const matchesFilters =
         activeFilters.length === 0 ||
         activeFilters.some(
@@ -65,7 +65,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
       <Header title="Repertório" showLogo={false} />
 
       <main className="flex-1 px-4 py-4 space-y-4">
-        {/* Search */}
+        {/* Busca */}
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
@@ -74,7 +74,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
           onRemoveFilter={removeFilter}
         />
 
-        {/* Filter Tabs */}
+        {/* Abas de Filtro */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           {FILTER_TABS.map((tab) => (
             <button
@@ -92,7 +92,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
           ))}
         </div>
 
-        {/* Quick Filter Chips */}
+        {/* Chips de Filtro Rápido */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           {SONG_CATEGORIES.slice(0, 5).map((category) => (
             <Badge
@@ -110,14 +110,14 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
           ))}
         </div>
 
-        {/* Results Count */}
+        {/* Contagem de Resultados */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {filteredSongs.length} música{filteredSongs.length !== 1 && "s"}
           </p>
         </div>
 
-        {/* Song List */}
+        {/* Lista de Músicas */}
         <div className="space-y-3">
           {filteredSongs.length > 0 ? (
             filteredSongs.map((song) => (

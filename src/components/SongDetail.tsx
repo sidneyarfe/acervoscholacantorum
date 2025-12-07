@@ -41,7 +41,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-24">
-      {/* Header */}
+      {/* Cabeçalho */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">
           <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
@@ -57,7 +57,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
       </header>
 
       <main className="flex-1 p-4 space-y-6">
-        {/* Song Info Card */}
+        {/* Card de Informações */}
         <Card variant="sacred">
           <CardContent className="p-5">
             <div className="flex flex-wrap gap-2 mb-4">
@@ -83,7 +83,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
           </CardContent>
         </Card>
 
-        {/* Score Section */}
+        {/* Seção de Partitura */}
         {song.hasScore && (
           <section>
             <h2 className="font-display text-lg font-semibold mb-3 flex items-center gap-2">
@@ -110,14 +110,14 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
           </section>
         )}
 
-        {/* Audio Player Section */}
+        {/* Seção do Player de Áudio */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3 flex items-center gap-2">
             <Music2 className="w-5 h-5 text-gold" />
             Áudios de Ensaio
           </h2>
 
-          {/* Full Recording */}
+          {/* Gravação Completa */}
           {song.hasAudio.full && (
             <Card variant="gold" className="mb-4">
               <CardContent className="p-4">
@@ -129,7 +129,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
                   </div>
                 </div>
 
-                {/* Waveform Placeholder */}
+                {/* Placeholder da Forma de Onda */}
                 <div className="h-12 bg-gold/10 rounded-lg mb-3 flex items-center justify-center">
                   <div className="flex items-end gap-0.5 h-8">
                     {Array.from({ length: 40 }).map((_, i) => (
@@ -145,7 +145,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
                   </div>
                 </div>
 
-                {/* Controls */}
+                {/* Controles */}
                 <div className="flex items-center justify-center gap-4">
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <span className="text-xs font-mono">0.75x</span>
@@ -170,7 +170,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
             </Card>
           )}
 
-          {/* Voice Parts */}
+          {/* Naipes */}
           {availableVoices.length > 0 && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Naipes individuais</p>
@@ -231,7 +231,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
           )}
         </section>
 
-        {/* Celebrations */}
+        {/* Celebrações */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">Celebrações</h2>
           <div className="space-y-2">

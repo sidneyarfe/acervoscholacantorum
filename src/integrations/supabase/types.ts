@@ -269,6 +269,7 @@ export type Database = {
         Row: {
           approved: boolean | null
           created_at: string
+          file_name: string | null
           file_url: string
           id: string
           key_signature: string | null
@@ -279,6 +280,7 @@ export type Database = {
         Insert: {
           approved?: boolean | null
           created_at?: string
+          file_name?: string | null
           file_url: string
           id?: string
           key_signature?: string | null
@@ -289,6 +291,7 @@ export type Database = {
         Update: {
           approved?: boolean | null
           created_at?: string
+          file_name?: string | null
           file_url?: string
           id?: string
           key_signature?: string | null

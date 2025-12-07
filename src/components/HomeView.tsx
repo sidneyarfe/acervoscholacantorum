@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import heroImage from "@/assets/hero-sacred.jpg";
 
 interface HomeViewProps {
+  selectedVoice: string | null;
   onSelectVoice: (voiceId: string) => void;
   onNavigate: (tab: string) => void;
   onSelectSong: (songId: string) => void;
@@ -24,7 +25,7 @@ const LITURGICAL_RANK_LABELS: Record<string, string> = {
   optional_memorial: "MEMORIAL OPCIONAL",
 };
 
-export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewProps) {
+export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSong }: HomeViewProps) {
   const { data: songs, isLoading: loadingSongs } = useSongs();
   const { data: celebrations, isLoading: loadingCelebrations } = useCelebrations();
   const { data: profile } = useProfile();
@@ -102,13 +103,16 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-display text-lg lg:text-xl font-semibold">Meu Naipe</h2>
-                  {profile?.preferred_voice && (
+                {(selectedVoice || profile?.preferred_voice) && (
                     <Badge variant="gold" className="text-xs">
                       Selecionado
                     </Badge>
                   )}
                 </div>
-                <VoicePartSelector selectedVoice={profile?.preferred_voice || null} onSelectVoice={handleVoiceSelect} />
+                <VoicePartSelector 
+                  selectedVoice={selectedVoice || profile?.preferred_voice || null} 
+                  onSelectVoice={handleVoiceSelect} 
+                />
                 <p className="text-xs text-muted-foreground text-center mt-3">
                   Selecione seu naipe para acesso rápido aos áudios
                 </p>

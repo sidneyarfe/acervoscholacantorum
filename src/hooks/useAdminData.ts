@@ -346,6 +346,7 @@ export function useUploadScore() {
         .insert({
           song_id: songId,
           file_url: publicUrl,
+          file_name: file.name, // Armazenar nome original do arquivo
           uploader_id: uploaderId,
           approved: true,
         })

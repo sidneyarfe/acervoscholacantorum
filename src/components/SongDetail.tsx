@@ -4,16 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, 
   FileText, 
-  Play, 
-  Pause, 
   Download,
-  Clock,
-  Music2
+  Music2,
+  ExternalLink
 } from "lucide-react";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { AudioPlayer } from "@/components/AudioPlayer";
+import { useState, useMemo } from "react";
 import type { Tables } from "@/integrations/supabase/types";
+import { useSongAudioTracks, useSongScores } from "@/hooks/useAdminData";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Song = Tables<"songs">;
 
@@ -28,13 +28,41 @@ const VOICING_LABELS: Record<string, string> = {
   unison: "Uníssono",
 };
 
+const VOICE_LABELS: Record<string, string> = {
+  soprano: "Soprano",
+  contralto: "Contralto",
+  tenor: "Tenor",
+  baixo: "Baixo",
+};
+
 export function SongDetail({ song, onBack }: SongDetailProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  
+  const { data: audioTracks, isLoading: loadingAudio } = useSongAudioTracks(song.id);
+  const { data: scores, isLoading: loadingScores } = useSongScores(song.id);
 
   const liturgicalTags = Array.isArray(song.liturgical_tags) 
     ? song.liturgical_tags as string[]
     : [];
+
+  // Find the appropriate audio track based on selected voice
+  const currentAudioTrack = useMemo(() => {
+    if (!audioTracks?.length) return null;
+    
+    if (selectedVoice) {
+      const voiceTrack = audioTracks.find(t => t.voice_part === selectedVoice);
+      if (voiceTrack) return voiceTrack;
+    }
+    
+    // Fallback to first available track
+    return audioTracks[0];
+  }, [audioTracks, selectedVoice]);
+
+  const currentVoiceLabel = currentAudioTrack?.voice_part 
+    ? VOICE_LABELS[currentAudioTrack.voice_part] 
+    : "Gravação Completa";
+
+  const latestScore = scores?.[0];
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-24 lg:pb-0">
@@ -114,48 +142,18 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
 
           <Card variant="gold">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-medium">
-                  {selectedVoice 
-                    ? `Naipe: ${selectedVoice.charAt(0).toUpperCase() + selectedVoice.slice(1)}`
-                    : "Gravação Completa"
-                  }
-                </span>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>--:--</span>
+              {loadingAudio ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-14 w-14 rounded-full mx-auto" />
                 </div>
-              </div>
-
-              {/* Placeholder da Forma de Onda */}
-              <div className="h-12 bg-gold/10 rounded-lg mb-3 flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">
-                  Nenhum áudio disponível
-                </p>
-              </div>
-
-              {/* Controles */}
-              <div className="flex items-center justify-center gap-4">
-                <Button variant="ghost" size="icon" className="rounded-full" disabled>
-                  <span className="text-xs font-mono">0.75x</span>
-                </Button>
-                <Button
-                  variant="gold"
-                  size="icon"
-                  className="w-14 h-14 rounded-full"
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  disabled
-                >
-                  {isPlaying ? (
-                    <Pause className="w-6 h-6" />
-                  ) : (
-                    <Play className="w-6 h-6 ml-0.5" />
-                  )}
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full" disabled>
-                  <span className="text-xs font-mono">1.25x</span>
-                </Button>
-              </div>
+              ) : (
+                <AudioPlayer
+                  audioUrl={currentAudioTrack?.file_url || null}
+                  voiceLabel={currentVoiceLabel}
+                />
+              )}
             </CardContent>
           </Card>
         </section>
@@ -168,19 +166,67 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
           </h2>
           <Card variant="interactive">
             <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-16 rounded-lg bg-muted flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-muted-foreground" />
+              {loadingScores ? (
+                <div className="flex items-center gap-3 flex-1">
+                  <Skeleton className="w-12 h-16 rounded-lg" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-sm">{song.title}.pdf</p>
-                  <p className="text-xs text-muted-foreground">Não disponível</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                <Download className="w-4 h-4 mr-1" />
-                Baixar
-              </Button>
+              ) : latestScore ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-16 rounded-lg bg-rose/10 flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-rose" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{song.title}.pdf</p>
+                      <p className="text-xs text-muted-foreground">
+                        {latestScore.key_signature || "Partitura disponível"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => window.open(latestScore.file_url, "_blank")}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = latestScore.file_url;
+                        link.download = `${song.title}.pdf`;
+                        link.click();
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Baixar
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-16 rounded-lg bg-muted flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{song.title}.pdf</p>
+                      <p className="text-xs text-muted-foreground">Não disponível</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" disabled>
+                    <Download className="w-4 h-4 mr-1" />
+                    Baixar
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </section>
@@ -211,8 +257,8 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
             </Card>
             <Card>
               <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Tipo</p>
-                <p className="font-medium">{VOICING_LABELS[song.voicing_type]}</p>
+                <p className="text-xs text-muted-foreground">Textura</p>
+                <p className="font-medium">{song.texture || "—"}</p>
               </CardContent>
             </Card>
           </div>

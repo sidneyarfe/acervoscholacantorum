@@ -231,14 +231,14 @@ export function useCreateUser() {
       email: string;
       password: string;
       display_name: string;
-      full_name?: string;
-      cpf?: string;
-      phone?: string;
+      full_name: string;
+      cpf: string;
+      phone: string;
       address?: string;
       join_date?: string;
       has_stole?: boolean;
       has_vestment?: boolean;
-      preferred_voice?: "soprano" | "contralto" | "tenor" | "baixo" | null;
+      preferred_voice: "soprano" | "contralto" | "tenor" | "baixo";
       role?: "admin" | "moderator" | "member";
     }) => {
       // Use edge function to create user (requires service role)

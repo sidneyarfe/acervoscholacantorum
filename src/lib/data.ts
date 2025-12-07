@@ -6,7 +6,7 @@ export interface Song {
   composer: string;
   arranger?: string;
   voicingType: "unison" | "polyphonic" | "gregorian";
-  texture: "SATB" | "SA" | "TB" | "SAB" | "Unison";
+  texture: "SATB" | "SA" | "TB" | "SAB" | "Uníssono";
   liturgicalTags: string[];
   genre: string;
   language: string;
@@ -33,7 +33,7 @@ export interface Celebration {
 
 export interface VoicePart {
   id: string;
-  name: "Soprano" | "Alto" | "Tenor" | "Bass";
+  name: "Soprano" | "Contralto" | "Tenor" | "Baixo";
   abbreviation: "S" | "A" | "T" | "B";
   color: string;
   icon: typeof Music;
@@ -41,9 +41,9 @@ export interface VoicePart {
 
 export const VOICE_PARTS: VoicePart[] = [
   { id: "soprano", name: "Soprano", abbreviation: "S", color: "rose", icon: Music },
-  { id: "alto", name: "Alto", abbreviation: "A", color: "rose", icon: Music },
+  { id: "alto", name: "Contralto", abbreviation: "A", color: "rose", icon: Music },
   { id: "tenor", name: "Tenor", abbreviation: "T", color: "gold", icon: Music },
-  { id: "bass", name: "Bass", abbreviation: "B", color: "gold", icon: Music },
+  { id: "bass", name: "Baixo", abbreviation: "B", color: "gold", icon: Music },
 ];
 
 export const MOCK_SONGS: Song[] = [
@@ -54,12 +54,12 @@ export const MOCK_SONGS: Song[] = [
     arranger: "Arr. Schola Cantorum",
     voicingType: "polyphonic",
     texture: "SATB",
-    liturgicalTags: ["Communion", "Corpus Christi", "Eucharistic"],
-    genre: "Hymn",
-    language: "Latin",
+    liturgicalTags: ["Comunhão", "Corpus Christi", "Eucarístico"],
+    genre: "Hino",
+    language: "Latim",
     hasScore: true,
     hasAudio: { soprano: true, alto: true, tenor: true, bass: true, full: true },
-    celebrations: ["Corpus Christi", "Holy Thursday"],
+    celebrations: ["Corpus Christi", "Quinta-feira Santa"],
     createdAt: "2024-01-15",
   },
   {
@@ -68,26 +68,26 @@ export const MOCK_SONGS: Song[] = [
     composer: "Franz Schubert",
     voicingType: "polyphonic",
     texture: "SATB",
-    liturgicalTags: ["Marian", "Offertory"],
-    genre: "Motet",
-    language: "Latin",
+    liturgicalTags: ["Mariano", "Ofertório"],
+    genre: "Moteto",
+    language: "Latim",
     hasScore: true,
     hasAudio: { soprano: true, alto: true, tenor: false, bass: true, full: true },
-    celebrations: ["Assumption of Mary", "Immaculate Conception"],
+    celebrations: ["Assunção de Maria", "Imaculada Conceição"],
     createdAt: "2024-02-10",
   },
   {
     id: "3",
     title: "Kyrie Eleison (Missa de Angelis)",
-    composer: "Gregorian Chant",
+    composer: "Canto Gregoriano",
     voicingType: "gregorian",
-    texture: "Unison",
-    liturgicalTags: ["Ordinary", "Kyrie"],
-    genre: "Gregorian",
-    language: "Greek/Latin",
+    texture: "Uníssono",
+    liturgicalTags: ["Ordinário", "Kyrie"],
+    genre: "Gregoriano",
+    language: "Grego/Latim",
     hasScore: true,
     hasAudio: { soprano: false, alto: false, tenor: false, bass: false, full: true },
-    celebrations: ["Ordinary Time", "All Masses"],
+    celebrations: ["Tempo Comum", "Todas as Missas"],
     createdAt: "2024-01-05",
   },
   {
@@ -97,41 +97,41 @@ export const MOCK_SONGS: Song[] = [
     arranger: "Arr. Tradicional",
     voicingType: "polyphonic",
     texture: "SATB",
-    liturgicalTags: ["Entrance", "Christmas"],
-    genre: "Hymn",
-    language: "Latin",
+    liturgicalTags: ["Entrada", "Natal"],
+    genre: "Hino",
+    language: "Latim",
     hasScore: true,
     hasAudio: { soprano: true, alto: true, tenor: true, bass: true, full: true },
-    celebrations: ["Christmas", "Nativity"],
+    celebrations: ["Natal", "Natividade"],
     createdAt: "2023-12-20",
   },
   {
     id: "5",
     title: "Salve Regina",
-    composer: "Traditional",
+    composer: "Tradicional",
     voicingType: "gregorian",
-    texture: "Unison",
-    liturgicalTags: ["Marian", "Recessional"],
-    genre: "Gregorian",
-    language: "Latin",
+    texture: "Uníssono",
+    liturgicalTags: ["Mariano", "Saída"],
+    genre: "Gregoriano",
+    language: "Latim",
     hasScore: true,
     hasAudio: { soprano: false, alto: false, tenor: false, bass: false, full: true },
-    celebrations: ["Marian Feasts", "Ordinary Time"],
+    celebrations: ["Festas Marianas", "Tempo Comum"],
     createdAt: "2024-03-01",
   },
   {
     id: "6",
     title: "O Salutaris Hostia",
-    composer: "Thomas Aquinas",
+    composer: "São Tomás de Aquino",
     arranger: "Arr. Pierre de la Rue",
     voicingType: "polyphonic",
     texture: "SATB",
-    liturgicalTags: ["Eucharistic", "Benediction"],
-    genre: "Motet",
-    language: "Latin",
+    liturgicalTags: ["Eucarístico", "Bênção"],
+    genre: "Moteto",
+    language: "Latim",
     hasScore: true,
     hasAudio: { soprano: true, alto: false, tenor: true, bass: true, full: false },
-    celebrations: ["Corpus Christi", "Eucharistic Adoration"],
+    celebrations: ["Corpus Christi", "Adoração Eucarística"],
     createdAt: "2024-02-28",
   },
 ];
@@ -141,52 +141,52 @@ export const MOCK_CELEBRATIONS: Celebration[] = [
     id: "1",
     name: "Corpus Christi",
     liturgicalRank: "solemnity",
-    feastType: "Eucharistic",
-    dateRule: "60 days after Easter",
-    description: "Solemnity of the Most Holy Body and Blood of Christ",
+    feastType: "Eucarístico",
+    dateRule: "60 dias após a Páscoa",
+    description: "Solenidade do Santíssimo Corpo e Sangue de Cristo",
   },
   {
     id: "2",
-    name: "Christmas",
+    name: "Natal do Senhor",
     liturgicalRank: "solemnity",
     feastType: "Temporal",
-    dateRule: "December 25",
-    description: "Nativity of the Lord",
+    dateRule: "25 de dezembro",
+    description: "Natividade do Senhor",
   },
   {
     id: "3",
-    name: "Assumption of Mary",
+    name: "Assunção de Maria",
     liturgicalRank: "solemnity",
-    feastType: "Marian",
-    dateRule: "August 15",
-    description: "Assumption of the Blessed Virgin Mary",
+    feastType: "Mariano",
+    dateRule: "15 de agosto",
+    description: "Assunção da Bem-Aventurada Virgem Maria",
   },
   {
     id: "4",
-    name: "Easter Sunday",
+    name: "Domingo de Páscoa",
     liturgicalRank: "solemnity",
     feastType: "Temporal",
-    dateRule: "Variable",
-    description: "Resurrection of the Lord",
+    dateRule: "Variável",
+    description: "Ressurreição do Senhor",
   },
 ];
 
 export const LITURGICAL_SEASONS = [
-  "Advent",
-  "Christmas",
-  "Ordinary Time",
-  "Lent",
-  "Easter",
+  "Advento",
+  "Natal",
+  "Tempo Comum",
+  "Quaresma",
+  "Páscoa",
 ];
 
 export const SONG_CATEGORIES = [
-  "Entrance",
+  "Entrada",
   "Kyrie",
-  "Gloria",
-  "Responsorial Psalm",
-  "Gospel Acclamation",
-  "Offertory",
-  "Sanctus",
-  "Communion",
-  "Recessional",
+  "Glória",
+  "Salmo Responsorial",
+  "Aclamação ao Evangelho",
+  "Ofertório",
+  "Santo",
+  "Comunhão",
+  "Saída",
 ];

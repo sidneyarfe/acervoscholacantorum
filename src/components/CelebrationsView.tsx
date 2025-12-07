@@ -14,7 +14,7 @@ export function CelebrationsView({ onSelectCelebration }: CelebrationsViewProps)
       <Header title="Celebrações" showLogo={false} />
 
       <main className="flex-1 px-4 py-4 space-y-6">
-        {/* Liturgical Seasons */}
+        {/* Tempos Litúrgicos */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">
             Tempos Litúrgicos
@@ -31,7 +31,7 @@ export function CelebrationsView({ onSelectCelebration }: CelebrationsViewProps)
           </div>
         </section>
 
-        {/* Upcoming */}
+        {/* Próximas Celebrações */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">
             Próximas Celebrações
@@ -85,7 +85,7 @@ export function CelebrationsView({ onSelectCelebration }: CelebrationsViewProps)
           </div>
         </section>
 
-        {/* All Celebrations by Type */}
+        {/* Todas as Celebrações por Tipo */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">
             Por Tipo de Festa

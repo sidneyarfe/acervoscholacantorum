@@ -49,7 +49,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
         />
 
         {!searchQuery.trim() ? (
-          /* Suggestions */
+          /* Sugestões */
           <div className="space-y-4">
             <h2 className="font-display text-lg font-semibold">Sugestões</h2>
             <div className="flex flex-wrap gap-2">
@@ -90,7 +90,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
             </div>
           </div>
         ) : (
-          /* Search Results */
+          /* Resultados da Busca */
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {searchResults.length} resultado

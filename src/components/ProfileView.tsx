@@ -23,7 +23,7 @@ export function ProfileView() {
       <Header title="Perfil" showLogo={false} />
 
       <main className="flex-1 px-4 py-4 space-y-6">
-        {/* User Card */}
+        {/* Card do Usuário */}
         <Card variant="gold">
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
@@ -45,7 +45,7 @@ export function ProfileView() {
           </CardContent>
         </Card>
 
-        {/* Voice Selection */}
+        {/* Seleção de Naipe */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">
             Meu Naipe
@@ -56,7 +56,7 @@ export function ProfileView() {
           />
         </section>
 
-        {/* Stats */}
+        {/* Estatísticas */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">
             Minha Atividade
@@ -92,7 +92,7 @@ export function ProfileView() {
           </div>
         </section>
 
-        {/* Settings */}
+        {/* Configurações */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">
             Configurações
@@ -122,7 +122,7 @@ export function ProfileView() {
           </div>
         </section>
 
-        {/* Logout */}
+        {/* Sair */}
         <Button variant="outline" className="w-full" size="lg">
           <LogOut className="w-4 h-4 mr-2" />
           Sair

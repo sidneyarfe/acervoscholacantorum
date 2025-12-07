@@ -38,11 +38,11 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
       <Header />
 
       <main className="flex-1">
-        {/* Hero Section */}
+        {/* Seção Hero */}
         <section className="relative h-44 overflow-hidden">
           <img
             src={heroImage}
-            alt="Sacred music manuscript"
+            alt="Manuscrito de música sacra"
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -57,7 +57,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
         </section>
 
         <div className="px-4 py-6 space-y-8">
-          {/* Quick Actions */}
+          {/* Ações Rápidas */}
           <section>
             <div className="grid grid-cols-2 gap-3">
               <Card
@@ -94,7 +94,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
             </div>
           </section>
 
-          {/* Voice Part Selection */}
+          {/* Seleção de Naipe */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-lg font-semibold">Meu Naipe</h2>
@@ -113,7 +113,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
             </p>
           </section>
 
-          {/* Recent Songs */}
+          {/* Músicas Recentes */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-lg font-semibold flex items-center gap-2">
@@ -141,7 +141,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
             </div>
           </section>
 
-          {/* Upcoming Celebrations */}
+          {/* Próximas Celebrações */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-lg font-semibold flex items-center gap-2">
@@ -168,7 +168,11 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                           variant="liturgical"
                           className="mb-2 text-[10px]"
                         >
-                          {celebration.liturgicalRank.toUpperCase()}
+                          {celebration.liturgicalRank === "solemnity"
+                            ? "SOLENIDADE"
+                            : celebration.liturgicalRank === "feast"
+                            ? "FESTA"
+                            : "MEMORIAL"}
                         </Badge>
                         <h3 className="font-display font-semibold text-base">
                           {celebration.name}
@@ -189,7 +193,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
             </div>
           </section>
 
-          {/* Stats */}
+          {/* Estatísticas */}
           <section className="bg-parchment rounded-2xl p-4">
             <h3 className="font-display text-sm font-semibold text-muted-foreground mb-3">
               Nosso Acervo

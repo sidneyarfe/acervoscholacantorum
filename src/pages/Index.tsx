@@ -38,7 +38,7 @@ const Index = () => {
 
   // Show song detail
   if (selectedSong) {
-    return <SongDetail song={selectedSong} onBack={handleBackFromSong} />;
+    return <SongDetail song={selectedSong} onBack={handleBackFromSong} initialVoice={selectedVoice} />;
   }
 
   // Show celebration detail

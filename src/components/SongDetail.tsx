@@ -25,6 +25,7 @@ type Song = Tables<"songs">;
 interface SongDetailProps {
   song: Song;
   onBack: () => void;
+  initialVoice?: string | null;
 }
 
 const VOICING_LABELS: Record<string, string> = {
@@ -40,8 +41,8 @@ const VOICE_LABELS: Record<string, string> = {
   baixo: "Baixo",
 };
 
-export function SongDetail({ song, onBack }: SongDetailProps) {
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+export function SongDetail({ song, onBack, initialVoice }: SongDetailProps) {
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(initialVoice || null);
   const { user } = useAuth();
   const { isAdmin } = useIsAdmin();
   const uploadScore = useUploadScore();

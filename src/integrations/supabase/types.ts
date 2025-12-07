@@ -402,6 +402,24 @@ export type Database = {
         }
         Relationships: []
       }
+      song_tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       song_textures: {
         Row: {
           created_at: string

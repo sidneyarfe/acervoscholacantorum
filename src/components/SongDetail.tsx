@@ -81,7 +81,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
 
             {liturgicalTags.length > 0 && (
               <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-sm text-muted-foreground mb-2">Tags litúrgicas:</p>
+                <p className="text-sm text-muted-foreground mb-2">Tags:</p>
                 <div className="flex flex-wrap gap-2">
                   {liturgicalTags.map((tag) => (
                     <Badge key={tag} variant="outline">

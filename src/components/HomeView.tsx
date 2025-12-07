@@ -8,6 +8,7 @@ import { SongCard } from "@/components/SongCard";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useProfile } from "@/hooks/useProfile";
+import { useAudioCount } from "@/hooks/useAudioCount";
 import { useToast } from "@/hooks/use-toast";
 import heroImage from "@/assets/hero-sacred.jpg";
 
@@ -29,6 +30,7 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
   const { data: songs, isLoading: loadingSongs } = useSongs();
   const { data: celebrations, isLoading: loadingCelebrations } = useCelebrations();
   const { data: profile } = useProfile();
+  const { data: audioCount } = useAudioCount();
   const { toast } = useToast();
 
   const recentSongs = songs?.slice(0, 4) || [];
@@ -212,7 +214,7 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
                       <Headphones className="w-5 h-5 text-gold" />
                     </div>
                     <div>
-                      <p className="text-xl font-display font-bold text-foreground">0</p>
+                      <p className="text-xl font-display font-bold text-foreground">{audioCount || 0}</p>
                       <p className="text-xs text-muted-foreground">Áudios</p>
                     </div>
                   </div>
@@ -283,7 +285,7 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
                 <div className="flex items-center justify-center w-10 h-10 mx-auto rounded-full bg-gold/10 mb-2">
                   <Headphones className="w-5 h-5 text-gold" />
                 </div>
-                <p className="text-2xl font-display font-bold text-foreground">0</p>
+                <p className="text-2xl font-display font-bold text-foreground">{audioCount || 0}</p>
                 <p className="text-xs text-muted-foreground">Áudios</p>
               </div>
             </div>

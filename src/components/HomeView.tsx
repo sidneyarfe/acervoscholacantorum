@@ -5,6 +5,7 @@ import { Search, Music2, Calendar, Clock, ChevronRight, BookOpen, Headphones, Lo
 import { Header } from "@/components/Header";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
 import { SongCard } from "@/components/SongCard";
+import { CelebrationCard } from "@/components/CelebrationCard";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useProfile } from "@/hooks/useProfile";
@@ -172,21 +173,12 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
                 ) : (
                   <div className="space-y-3">
                     {upcomingCelebrations.map((celebration) => (
-                      <Card 
-                        key={celebration.id} 
-                        variant="interactive" 
-                        className="cursor-pointer"
+                      <CelebrationCard
+                        key={celebration.id}
+                        celebration={celebration}
                         onClick={() => onSelectCelebration(celebration.id)}
-                      >
-                        <CardContent className="p-4">
-                          <Badge variant="liturgical" className="mb-2 text-[10px]">
-                            {LITURGICAL_RANK_LABELS[celebration.liturgical_rank]}
-                          </Badge>
-                          <h3 className="font-display font-semibold text-base">{celebration.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{celebration.description}</p>
-                          <p className="text-xs text-gold mt-2">{celebration.date_rule}</p>
-                        </CardContent>
-                      </Card>
+                        showArrow={false}
+                      />
                     ))}
                   </div>
                 )}
@@ -256,27 +248,11 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
             ) : (
               <div className="space-y-3">
                 {upcomingCelebrations.map((celebration) => (
-                  <Card 
-                    key={celebration.id} 
-                    variant="interactive"
-                    className="cursor-pointer"
+                  <CelebrationCard
+                    key={celebration.id}
+                    celebration={celebration}
                     onClick={() => onSelectCelebration(celebration.id)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <Badge variant="liturgical" className="mb-2 text-[10px]">
-                            {LITURGICAL_RANK_LABELS[celebration.liturgical_rank]}
-                          </Badge>
-                          <h3 className="font-display font-semibold text-base">{celebration.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{celebration.description}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">{celebration.date_rule}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  />
                 ))}
               </div>
             )}

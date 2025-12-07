@@ -105,6 +105,7 @@ export type Database = {
           feast_type: string | null
           id: string
           liturgical_rank: Database["public"]["Enums"]["liturgical_rank"]
+          liturgical_season: string | null
           name: string
         }
         Insert: {
@@ -114,6 +115,7 @@ export type Database = {
           feast_type?: string | null
           id?: string
           liturgical_rank?: Database["public"]["Enums"]["liturgical_rank"]
+          liturgical_season?: string | null
           name: string
         }
         Update: {
@@ -123,6 +125,7 @@ export type Database = {
           feast_type?: string | null
           id?: string
           liturgical_rank?: Database["public"]["Enums"]["liturgical_rank"]
+          liturgical_season?: string | null
           name?: string
         }
         Relationships: []

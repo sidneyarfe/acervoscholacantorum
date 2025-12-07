@@ -109,28 +109,73 @@ export type Database = {
         }
         Relationships: []
       }
+      liturgical_hierarchies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          value?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          cpf: string | null
           created_at: string
           display_name: string | null
+          email: string | null
+          full_name: string | null
+          has_stole: boolean | null
+          has_vestment: boolean | null
           id: string
+          join_date: string | null
+          phone: string | null
           preferred_voice: Database["public"]["Enums"]["voice_part"] | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          cpf?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          full_name?: string | null
+          has_stole?: boolean | null
+          has_vestment?: boolean | null
           id: string
+          join_date?: string | null
+          phone?: string | null
           preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          cpf?: string | null
           created_at?: string
           display_name?: string | null
+          email?: string | null
+          full_name?: string | null
+          has_stole?: boolean | null
+          has_vestment?: boolean | null
           id?: string
+          join_date?: string | null
+          phone?: string | null
           preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
           updated_at?: string
         }
@@ -441,6 +486,24 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      voice_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }

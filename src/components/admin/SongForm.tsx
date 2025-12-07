@@ -12,27 +12,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useCreateSong, useUpdateSong, Song } from "@/hooks/useAdminData";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useSongGenres,
   useSongTextures,
   useSongLanguages,
+  useVoiceTypes,
   useCreateGenre,
   useCreateTexture,
   useCreateLanguage,
+  useCreateVoiceType,
   useDeleteGenre,
   useDeleteTexture,
   useDeleteLanguage,
+  useDeleteVoiceType,
 } from "@/hooks/useSongOptions";
-import { OptionManager } from "./OptionManager";
+import { ManageableSelect } from "./ManageableSelect";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -40,7 +36,7 @@ const songSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
   composer: z.string().optional(),
   arranger: z.string().optional(),
-  voicing_type: z.enum(["unison", "polyphonic", "gregorian"]),
+  voicing_type: z.string().min(1, "Tipo de voz é obrigatório"),
   texture: z.string().optional(),
   genre: z.string().optional(),
   language: z.string().optional(),
@@ -63,14 +59,17 @@ export function SongForm({ song, onClose }: SongFormProps) {
   const { data: genres = [], isLoading: loadingGenres } = useSongGenres();
   const { data: textures = [], isLoading: loadingTextures } = useSongTextures();
   const { data: languages = [], isLoading: loadingLanguages } = useSongLanguages();
+  const { data: voiceTypes = [], isLoading: loadingVoiceTypes } = useVoiceTypes();
 
   // Mutations for managing options
   const createGenre = useCreateGenre();
   const createTexture = useCreateTexture();
   const createLanguage = useCreateLanguage();
+  const createVoiceType = useCreateVoiceType();
   const deleteGenre = useDeleteGenre();
   const deleteTexture = useDeleteTexture();
   const deleteLanguage = useDeleteLanguage();
+  const deleteVoiceType = useDeleteVoiceType();
 
   const form = useForm<SongFormData>({
     resolver: zodResolver(songSchema),
@@ -78,7 +77,7 @@ export function SongForm({ song, onClose }: SongFormProps) {
       title: song?.title || "",
       composer: song?.composer || "",
       arranger: song?.arranger || "",
-      voicing_type: song?.voicing_type || "polyphonic",
+      voicing_type: song?.voicing_type || "Polifônico",
       texture: song?.texture || "",
       genre: song?.genre || "",
       language: song?.language || "Latim",
@@ -88,15 +87,23 @@ export function SongForm({ song, onClose }: SongFormProps) {
 
   const onSubmit = async (data: SongFormData) => {
     try {
+      // Map voicing_type to the expected enum value
+      const voicingMap: Record<string, "unison" | "polyphonic" | "gregorian"> = {
+        "Uníssono": "unison",
+        "Polifônico": "polyphonic",
+        "Gregoriano": "gregorian",
+      };
+      const voicing_type = voicingMap[data.voicing_type] || "polyphonic";
+
       if (song) {
-        await updateSong.mutateAsync({ id: song.id, ...data });
+        await updateSong.mutateAsync({ id: song.id, ...data, voicing_type });
         toast.success("Música atualizada com sucesso");
       } else {
         await createSong.mutateAsync({
           title: data.title,
           composer: data.composer,
           arranger: data.arranger,
-          voicing_type: data.voicing_type,
+          voicing_type,
           texture: data.texture,
           genre: data.genre,
           language: data.language,
@@ -112,6 +119,16 @@ export function SongForm({ song, onClose }: SongFormProps) {
   };
 
   const isSubmitting = createSong.isPending || updateSong.isPending;
+
+  // Map enum value to display name for editing
+  const getVoicingDisplayName = (value: string) => {
+    const map: Record<string, string> = {
+      unison: "Uníssono",
+      polyphonic: "Polifônico",
+      gregorian: "Gregoriano",
+    };
+    return map[value] || value;
+  };
 
   return (
     <Form {...form}>
@@ -167,18 +184,23 @@ export function SongForm({ song, onClose }: SongFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Tipo de Voz</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="unison">Uníssono</SelectItem>
-                    <SelectItem value="polyphonic">Polifônico</SelectItem>
-                    <SelectItem value="gregorian">Gregoriano</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <ManageableSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione o tipo"
+                    options={voiceTypes}
+                    isLoading={loadingVoiceTypes}
+                    onCreate={async (name) => {
+                      await createVoiceType.mutateAsync(name);
+                    }}
+                    onDelete={async (id) => {
+                      await deleteVoiceType.mutateAsync(id);
+                    }}
+                    isCreating={createVoiceType.isPending}
+                    isDeleting={deleteVoiceType.isPending}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -189,10 +211,12 @@ export function SongForm({ song, onClose }: SongFormProps) {
             name="language"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>Idioma</FormLabel>
-                  <OptionManager
-                    label="Idiomas"
+                <FormLabel>Idioma</FormLabel>
+                <FormControl>
+                  <ManageableSelect
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione o idioma"
                     options={languages}
                     isLoading={loadingLanguages}
                     onCreate={async (name) => {
@@ -204,21 +228,7 @@ export function SongForm({ song, onClose }: SongFormProps) {
                     isCreating={createLanguage.isPending}
                     isDeleting={deleteLanguage.isPending}
                   />
-                </div>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o idioma" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.id} value={lang.name}>
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -231,10 +241,12 @@ export function SongForm({ song, onClose }: SongFormProps) {
             name="genre"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>Gênero</FormLabel>
-                  <OptionManager
-                    label="Gêneros"
+                <FormLabel>Gênero</FormLabel>
+                <FormControl>
+                  <ManageableSelect
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione o gênero"
                     options={genres}
                     isLoading={loadingGenres}
                     onCreate={async (name) => {
@@ -246,21 +258,7 @@ export function SongForm({ song, onClose }: SongFormProps) {
                     isCreating={createGenre.isPending}
                     isDeleting={deleteGenre.isPending}
                   />
-                </div>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o gênero" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {genres.map((g) => (
-                      <SelectItem key={g.id} value={g.name}>
-                        {g.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -271,10 +269,12 @@ export function SongForm({ song, onClose }: SongFormProps) {
             name="texture"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel>Textura</FormLabel>
-                  <OptionManager
-                    label="Texturas"
+                <FormLabel>Textura</FormLabel>
+                <FormControl>
+                  <ManageableSelect
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione a textura"
                     options={textures}
                     isLoading={loadingTextures}
                     onCreate={async (name) => {
@@ -286,21 +286,7 @@ export function SongForm({ song, onClose }: SongFormProps) {
                     isCreating={createTexture.isPending}
                     isDeleting={deleteTexture.isPending}
                   />
-                </div>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a textura" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {textures.map((t) => (
-                      <SelectItem key={t.id} value={t.name}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

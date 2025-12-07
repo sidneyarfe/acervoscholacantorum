@@ -146,6 +146,10 @@ export function useDeleteCelebration() {
 }
 
 // ===== USERS =====
+export interface AdminUser extends Profile {
+  role: "admin" | "moderator" | "member";
+}
+
 export function useAdminUsers() {
   return useQuery({
     queryKey: ["admin-users"],
@@ -163,7 +167,7 @@ export function useAdminUsers() {
 
       return profiles.map((profile) => ({
         ...profile,
-        role: roles.find((r) => r.user_id === profile.id)?.role || "member",
+        role: (roles.find((r) => r.user_id === profile.id)?.role || "member") as "admin" | "moderator" | "member",
       }));
     },
   });
@@ -193,6 +197,25 @@ export function useUpdateUserRole() {
           .insert({ user_id: userId, role });
         if (error) throw error;
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+  });
+}
+
+export function useUpdateUserProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: TablesUpdate<"profiles"> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });

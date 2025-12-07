@@ -2,7 +2,9 @@ import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { SearchBar } from "@/components/SearchBar";
 import { SongCard } from "@/components/SongCard";
+import { SearchFilters, SearchFiltersState } from "@/components/SearchFilters";
 import { useSongs } from "@/hooks/useSongs";
+import { useCelebrationSongs } from "@/hooks/useSongCelebrations";
 import { Loader2 } from "lucide-react";
 
 interface SearchViewProps {
@@ -18,29 +20,91 @@ const SUGGESTIONS = [
   "Gregoriano",
 ];
 
+const VOICING_TYPE_MAP: Record<string, string> = {
+  unison: "Uníssono",
+  polyphonic: "Polifônico",
+  gregorian: "Gregoriano",
+};
+
+const emptyFilters: SearchFiltersState = {
+  tag: null,
+  celebration: null,
+  voiceType: null,
+  language: null,
+  genre: null,
+  texture: null,
+};
+
 export function SearchView({ onSelectSong }: SearchViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<SearchFiltersState>(emptyFilters);
   const { data: songs, isLoading } = useSongs();
+  
+  // Get songs for selected celebration filter
+  const { data: celebrationSongs } = useCelebrationSongs(filters.celebration);
+  const celebrationSongIds = useMemo(() => 
+    celebrationSongs?.map(cs => cs.song?.id).filter(Boolean) || [],
+    [celebrationSongs]
+  );
+
+  const hasActiveFilters = Object.values(filters).some(v => v !== null);
 
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim() || !songs) return [];
+    if (!songs) return [];
 
-    const query = searchQuery.toLowerCase();
+    let filtered = [...songs];
 
-    return songs.filter((song) => {
-      const liturgicalTags = Array.isArray(song.liturgical_tags) 
-        ? song.liturgical_tags as string[]
-        : [];
+    // Text search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((song) => {
+        const liturgicalTags = Array.isArray(song.liturgical_tags) 
+          ? song.liturgical_tags as string[]
+          : [];
 
-      return (
-        song.title.toLowerCase().includes(query) ||
-        (song.composer && song.composer.toLowerCase().includes(query)) ||
-        (song.arranger && song.arranger.toLowerCase().includes(query)) ||
-        liturgicalTags.some((tag) => tag.toLowerCase().includes(query)) ||
-        (song.genre && song.genre.toLowerCase().includes(query))
-      );
-    });
-  }, [searchQuery, songs]);
+        return (
+          song.title.toLowerCase().includes(query) ||
+          (song.composer && song.composer.toLowerCase().includes(query)) ||
+          (song.arranger && song.arranger.toLowerCase().includes(query)) ||
+          liturgicalTags.some((tag) => tag.toLowerCase().includes(query)) ||
+          (song.genre && song.genre.toLowerCase().includes(query))
+        );
+      });
+    }
+
+    // Apply filters
+    if (filters.tag) {
+      filtered = filtered.filter((song) => {
+        const tags = Array.isArray(song.liturgical_tags) ? song.liturgical_tags as string[] : [];
+        return tags.includes(filters.tag!);
+      });
+    }
+
+    if (filters.celebration && celebrationSongIds.length > 0) {
+      filtered = filtered.filter((song) => celebrationSongIds.includes(song.id));
+    }
+
+    if (filters.voiceType) {
+      const voicingValue = Object.entries(VOICING_TYPE_MAP).find(([_, label]) => label === filters.voiceType)?.[0];
+      filtered = filtered.filter((song) => song.voicing_type === voicingValue || song.voicing_type === filters.voiceType);
+    }
+
+    if (filters.language) {
+      filtered = filtered.filter((song) => song.language === filters.language);
+    }
+
+    if (filters.genre) {
+      filtered = filtered.filter((song) => song.genre === filters.genre);
+    }
+
+    if (filters.texture) {
+      filtered = filtered.filter((song) => song.texture === filters.texture);
+    }
+
+    return filtered;
+  }, [searchQuery, songs, filters, celebrationSongIds]);
+
+  const showResults = searchQuery.trim() || hasActiveFilters;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -56,11 +120,18 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
           />
         </div>
 
+        {/* Filters */}
+        <SearchFilters 
+          filters={filters}
+          onFiltersChange={setFilters}
+          onClearFilters={() => setFilters(emptyFilters)}
+        />
+
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gold" />
           </div>
-        ) : !searchQuery.trim() ? (
+        ) : !showResults ? (
           /* Sugestões */
           <div className="space-y-6 lg:space-y-8">
             <div className="space-y-4">
@@ -108,7 +179,9 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {searchResults.length} resultado
-              {searchResults.length !== 1 && "s"} para "{searchQuery}"
+              {searchResults.length !== 1 && "s"}
+              {searchQuery && ` para "${searchQuery}"`}
+              {hasActiveFilters && " com filtros aplicados"}
             </p>
 
             {searchResults.length > 0 ? (
@@ -128,7 +201,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
                   Nenhum resultado encontrado
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Tente outras palavras-chave
+                  Tente outras palavras-chave ou ajuste os filtros
                 </p>
               </div>
             )}

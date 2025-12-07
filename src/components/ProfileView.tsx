@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,11 @@ import {
   ChevronRight,
   Bell,
   HelpCircle,
-  Loader2
+  Loader2,
+  Pencil
 } from "lucide-react";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
+import { ProfileEditForm } from "@/components/ProfileEditForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +33,7 @@ export function ProfileView() {
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const { toast } = useToast();
+  const [editOpen, setEditOpen] = useState(false);
 
   const handleVoiceChange = async (voice: string) => {
     try {
@@ -93,9 +97,64 @@ export function ProfileView() {
                       </Badge>
                     )}
                   </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setEditOpen(true)}
+                    className="h-10 w-10"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Informações Pessoais */}
+            {profile && (
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-display text-lg lg:text-xl font-semibold">
+                    Minhas Informações
+                  </h2>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditOpen(true)}
+                    className="gap-2"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Editar
+                  </Button>
+                </div>
+                <Card>
+                  <CardContent className="p-4 space-y-3">
+                    {profile.full_name && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Nome Completo</p>
+                        <p className="text-sm font-medium">{profile.full_name}</p>
+                      </div>
+                    )}
+                    {profile.phone && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Telefone</p>
+                        <p className="text-sm font-medium">{profile.phone}</p>
+                      </div>
+                    )}
+                    {profile.address && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">Endereço</p>
+                        <p className="text-sm font-medium">{profile.address}</p>
+                      </div>
+                    )}
+                    {!profile.full_name && !profile.phone && !profile.address && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        Clique em "Editar" para adicionar suas informações
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </section>
+            )}
 
             {/* Seleção de Naipe */}
             <section>
@@ -189,6 +248,15 @@ export function ProfileView() {
           </div>
         </div>
       </main>
+
+      {/* Edit Profile Dialog */}
+      {profile && (
+        <ProfileEditForm 
+          profile={profile}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+      )}
     </div>
   );
 }

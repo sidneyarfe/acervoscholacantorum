@@ -6,14 +6,19 @@ import {
   FileText, 
   Download,
   Music2,
-  ExternalLink
+  ExternalLink,
+  Upload,
+  Loader2
 } from "lucide-react";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
 import { AudioPlayer } from "@/components/AudioPlayer";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import type { Tables } from "@/integrations/supabase/types";
-import { useSongAudioTracks, useSongScores } from "@/hooks/useAdminData";
+import { useSongAudioTracks, useSongScores, useUploadScore } from "@/hooks/useAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsAdmin } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 type Song = Tables<"songs">;
 
@@ -37,6 +42,10 @@ const VOICE_LABELS: Record<string, string> = {
 
 export function SongDetail({ song, onBack }: SongDetailProps) {
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
+  const uploadScore = useUploadScore();
+  const scoreInputRef = useRef<HTMLInputElement>(null);
   
   const { data: audioTracks, isLoading: loadingAudio } = useSongAudioTracks(song.id);
   const { data: scores, isLoading: loadingScores } = useSongScores(song.id);
@@ -63,6 +72,31 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
     : "Gravação Completa";
 
   const latestScore = scores?.[0];
+
+  const handleScoreUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.type !== "application/pdf") {
+      toast.error("Apenas arquivos PDF são permitidos");
+      return;
+    }
+
+    try {
+      await uploadScore.mutateAsync({
+        file,
+        songId: song.id,
+        uploaderId: user.id,
+      });
+      toast.success("Partitura enviada com sucesso");
+    } catch (error) {
+      toast.error("Erro ao enviar partitura");
+    }
+
+    if (scoreInputRef.current) {
+      scoreInputRef.current.value = "";
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background pb-24 lg:pb-0">
@@ -160,10 +194,37 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
 
         {/* Seção de Partitura */}
         <section>
-          <h2 className="font-display text-lg font-semibold mb-3 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-rose" />
-            Partitura
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+              <FileText className="w-5 h-5 text-rose" />
+              Partitura
+            </h2>
+            {isAdmin && (
+              <>
+                <input
+                  ref={scoreInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleScoreUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => scoreInputRef.current?.click()}
+                  disabled={uploadScore.isPending}
+                  className="gap-2"
+                >
+                  {uploadScore.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  Enviar PDF
+                </Button>
+              </>
+            )}
+          </div>
           <Card variant="interactive">
             <CardContent className="p-4 flex items-center justify-between">
               {loadingScores ? (

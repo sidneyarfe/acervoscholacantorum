@@ -3,8 +3,9 @@ import { Header } from "@/components/Header";
 import { SearchBar } from "@/components/SearchBar";
 import { SongCard } from "@/components/SongCard";
 import { Badge } from "@/components/ui/badge";
-import { MOCK_SONGS, LITURGICAL_SEASONS, SONG_CATEGORIES } from "@/lib/data";
+import { useSongs } from "@/hooks/useSongs";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 interface LibraryViewProps {
   onSelectSong: (songId: string) => void;
@@ -17,38 +18,47 @@ const FILTER_TABS = [
   { id: "unison", label: "Uníssono" },
 ];
 
+const SONG_CATEGORIES = [
+  "Comunhão",
+  "Entrada",
+  "Ofertório",
+  "Ordinário",
+  "Mariano",
+];
+
 export function LibraryView({ onSelectSong }: LibraryViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
+  const { data: songs, isLoading } = useSongs();
+
   const filteredSongs = useMemo(() => {
-    return MOCK_SONGS.filter((song) => {
+    if (!songs) return [];
+
+    return songs.filter((song) => {
       // Filtro de busca
       const matchesSearch =
         !searchQuery ||
         song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.composer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.liturgicalTags.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        (song.composer && song.composer.toLowerCase().includes(searchQuery.toLowerCase()));
 
       // Filtro de tipo de vozes
       const matchesVoicing =
-        activeFilter === "all" || song.voicingType === activeFilter;
+        activeFilter === "all" || song.voicing_type === activeFilter;
 
-      // Filtros adicionais
+      // Filtros adicionais (liturgical_tags)
+      const liturgicalTags = Array.isArray(song.liturgical_tags) 
+        ? song.liturgical_tags as string[]
+        : [];
+      
       const matchesFilters =
         activeFilters.length === 0 ||
-        activeFilters.some(
-          (filter) =>
-            song.liturgicalTags.includes(filter) ||
-            song.celebrations.includes(filter)
-        );
+        activeFilters.some((filter) => liturgicalTags.includes(filter));
 
       return matchesSearch && matchesVoicing && matchesFilters;
     });
-  }, [searchQuery, activeFilter, activeFilters]);
+  }, [songs, searchQuery, activeFilter, activeFilters]);
 
   const removeFilter = (filter: string) => {
     setActiveFilters((prev) => prev.filter((f) => f !== filter));
@@ -96,7 +106,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
 
         {/* Chips de Filtro Rápido */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
-          {SONG_CATEGORIES.slice(0, 5).map((category) => (
+          {SONG_CATEGORIES.map((category) => (
             <Badge
               key={category}
               variant={activeFilters.includes(category) ? "gold" : "outline"}
@@ -120,26 +130,32 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
         </div>
 
         {/* Lista de Músicas - Grid em Desktop */}
-        <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
-          {filteredSongs.length > 0 ? (
-            filteredSongs.map((song) => (
-              <SongCard
-                key={song.id}
-                song={song}
-                onClick={() => onSelectSong(song.id)}
-              />
-            ))
-          ) : (
-            <div className="text-center py-12 lg:col-span-full">
-              <p className="text-muted-foreground">
-                Nenhuma música encontrada
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Tente ajustar os filtros
-              </p>
-            </div>
-          )}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-gold" />
+          </div>
+        ) : (
+          <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
+            {filteredSongs.length > 0 ? (
+              filteredSongs.map((song) => (
+                <SongCard
+                  key={song.id}
+                  song={song}
+                  onClick={() => onSelectSong(song.id)}
+                />
+              ))
+            ) : (
+              <div className="text-center py-12 lg:col-span-full">
+                <p className="text-muted-foreground">
+                  Nenhuma música encontrada
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Tente ajustar os filtros
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

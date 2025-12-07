@@ -6,16 +6,14 @@ import { SearchView } from "@/components/SearchView";
 import { CelebrationsView } from "@/components/CelebrationsView";
 import { ProfileView } from "@/components/ProfileView";
 import { SongDetail } from "@/components/SongDetail";
-import { MOCK_SONGS } from "@/lib/data";
+import { useSong } from "@/hooks/useSongs";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
 
-  const selectedSong = selectedSongId
-    ? MOCK_SONGS.find((s) => s.id === selectedSongId)
-    : null;
+  const { data: selectedSong } = useSong(selectedSongId);
 
   const handleSelectSong = (songId: string) => {
     setSelectedSongId(songId);

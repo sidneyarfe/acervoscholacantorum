@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Music, Home, Library, Search, Calendar, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Library, Search, Calendar, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import scholaLogo from "@/assets/schola-logo.png";
 
 interface DesktopSidebarProps {
   activeTab: string;
@@ -31,9 +32,14 @@ export function DesktopSidebar({ activeTab, onTabChange }: DesktopSidebarProps) 
         "flex items-center gap-3 p-4 border-b border-border",
         collapsed && "justify-center"
       )}>
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-gold to-gold-dark shadow-gold flex-shrink-0">
-          <Music className="w-6 h-6 text-primary-foreground" />
-        </div>
+        <img 
+          src={scholaLogo} 
+          alt="Schola Cantorum" 
+          className={cn(
+            "object-contain flex-shrink-0",
+            collapsed ? "w-12 h-12" : "w-14 h-14"
+          )}
+        />
         {!collapsed && (
           <div className="flex flex-col min-w-0">
             <h1 className="font-display text-lg font-semibold leading-tight text-foreground truncate">

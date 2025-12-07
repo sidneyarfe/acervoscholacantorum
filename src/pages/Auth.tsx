@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Music, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import scholaLogo from "@/assets/schola-logo.png";
 
 // Validação com Zod
 const authSchema = z.object({
@@ -126,15 +127,11 @@ export default function Auth() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       {/* Logo */}
       <div className="flex flex-col items-center mb-8">
-        <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gold to-gold-dark shadow-gold mb-4">
-          <Music className="w-10 h-10 text-primary-foreground" />
-        </div>
-        <h1 className="font-display text-2xl font-semibold text-foreground">
-          Schola Cantorum
-        </h1>
-        <p className="text-sm text-muted-foreground uppercase tracking-wider">
-          Catedral de Belém
-        </p>
+        <img 
+          src={scholaLogo} 
+          alt="Schola Cantorum - Catedral de Belém" 
+          className="w-32 h-32 object-contain mb-2"
+        />
       </div>
 
       <Card className="w-full max-w-md" variant="elevated">

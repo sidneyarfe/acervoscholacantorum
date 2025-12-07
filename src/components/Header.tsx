@@ -1,4 +1,4 @@
-import { Music } from "lucide-react";
+import scholaLogo from "@/assets/schola-logo.png";
 
 interface HeaderProps {
   title?: string;
@@ -8,12 +8,14 @@ interface HeaderProps {
 export function Header({ title, showLogo = true }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
-      <div className="flex items-center justify-between px-4 lg:px-8 py-3 lg:py-4">
+      <div className="flex items-center justify-between px-4 lg:px-8 py-2 lg:py-3">
         {showLogo ? (
           <div className="flex items-center gap-3 lg:hidden">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-gold to-gold-dark shadow-gold">
-              <Music className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img 
+              src={scholaLogo} 
+              alt="Schola Cantorum" 
+              className="w-12 h-12 object-contain"
+            />
             <div className="flex flex-col">
               <h1 className="font-display text-lg font-semibold leading-tight text-foreground">
                 Schola Cantorum

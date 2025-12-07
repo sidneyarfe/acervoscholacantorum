@@ -23,18 +23,70 @@ import { useCreateUser } from "@/hooks/useAdminData";
 import { toast } from "sonner";
 import { Loader2, Crown, Shield, User } from "lucide-react";
 
+// Função para validar CPF
+function isValidCPF(cpf: string): boolean {
+  const cleanCPF = cpf.replace(/\D/g, "");
+  
+  if (cleanCPF.length !== 11) return false;
+  if (/^(\d)\1+$/.test(cleanCPF)) return false; // Todos dígitos iguais
+  
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
+  }
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCPF.charAt(9))) return false;
+  
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
+  }
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleanCPF.charAt(10))) return false;
+  
+  return true;
+}
+
+// Função para validar telefone brasileiro
+function isValidPhone(phone: string): boolean {
+  const cleanPhone = phone.replace(/\D/g, "");
+  return cleanPhone.length >= 10 && cleanPhone.length <= 11;
+}
+
+// Função para formatar CPF
+function formatCPF(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+// Função para formatar telefone
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 const createUserSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
   display_name: z.string().min(1, "Nome de exibição é obrigatório"),
-  full_name: z.string().optional(),
-  cpf: z.string().optional(),
-  phone: z.string().optional(),
+  full_name: z.string().min(1, "Nome completo é obrigatório"),
+  cpf: z.string().refine(isValidCPF, { message: "CPF inválido" }),
+  phone: z.string().refine(isValidPhone, { message: "Telefone inválido" }),
   address: z.string().optional(),
   join_date: z.string().optional(),
   has_stole: z.boolean().default(false),
   has_vestment: z.boolean().default(false),
-  preferred_voice: z.enum(["soprano", "contralto", "tenor", "baixo"]).optional().nullable(),
+  preferred_voice: z.enum(["soprano", "contralto", "tenor", "baixo"], {
+    required_error: "Selecione o naipe",
+  }),
   role: z.enum(["admin", "moderator", "member"]).default("member"),
 });
 
@@ -60,10 +112,18 @@ export function CreateUserForm({ onClose }: CreateUserFormProps) {
       join_date: "",
       has_stole: false,
       has_vestment: false,
-      preferred_voice: null,
+      preferred_voice: undefined,
       role: "member",
     },
   });
+
+  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
+    onChange(formatCPF(e.target.value));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
+    onChange(formatPhone(e.target.value));
+  };
 
   const onSubmit = async (data: CreateUserFormData) => {
     try {
@@ -141,7 +201,7 @@ export function CreateUserForm({ onClose }: CreateUserFormProps) {
             name="full_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome Completo</FormLabel>
+                <FormLabel>Nome Completo *</FormLabel>
                 <FormControl>
                   <Input placeholder="Nome completo" {...field} />
                 </FormControl>
@@ -157,9 +217,13 @@ export function CreateUserForm({ onClose }: CreateUserFormProps) {
             name="cpf"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>CPF</FormLabel>
+                <FormLabel>CPF *</FormLabel>
                 <FormControl>
-                  <Input placeholder="000.000.000-00" {...field} />
+                  <Input 
+                    placeholder="000.000.000-00" 
+                    value={field.value}
+                    onChange={(e) => handleCPFChange(e, field.onChange)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -171,9 +235,13 @@ export function CreateUserForm({ onClose }: CreateUserFormProps) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telefone</FormLabel>
+                <FormLabel>Telefone *</FormLabel>
                 <FormControl>
-                  <Input placeholder="(00) 00000-0000" {...field} />
+                  <Input 
+                    placeholder="(00) 00000-0000" 
+                    value={field.value}
+                    onChange={(e) => handlePhoneChange(e, field.onChange)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -201,10 +269,10 @@ export function CreateUserForm({ onClose }: CreateUserFormProps) {
             name="preferred_voice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Voz Preferida</FormLabel>
+                <FormLabel>Naipe *</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value || undefined}
+                  defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>

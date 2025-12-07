@@ -59,17 +59,18 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
     if (!audioTracks?.length) return null;
     
     if (selectedVoice) {
-      const voiceTrack = audioTracks.find(t => t.voice_part === selectedVoice);
-      if (voiceTrack) return voiceTrack;
+      // Only return the track if it matches the selected voice
+      return audioTracks.find(t => t.voice_part === selectedVoice) || null;
     }
     
-    // Fallback to first available track
+    // No voice selected, show first available track
     return audioTracks[0];
   }, [audioTracks, selectedVoice]);
 
-  const currentVoiceLabel = currentAudioTrack?.voice_part 
-    ? VOICE_LABELS[currentAudioTrack.voice_part] 
-    : "Gravação Completa";
+  // Label based on selected voice (not the track, since track might be null)
+  const currentVoiceLabel = selectedVoice 
+    ? VOICE_LABELS[selectedVoice] 
+    : (currentAudioTrack?.voice_part ? VOICE_LABELS[currentAudioTrack.voice_part] : "Gravação Completa");
 
   const latestScore = scores?.[0];
 

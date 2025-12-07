@@ -293,7 +293,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
           </Card>
         </section>
 
-        {/* Metadados */}
+        {/* Metadados - Apenas informações adicionais não exibidas acima */}
         <section>
           <h2 className="font-display text-lg font-semibold mb-3">
             Informações
@@ -301,28 +301,40 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
           <div className="grid grid-cols-2 gap-3">
             <Card>
               <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Gênero</p>
-                <p className="font-medium">{song.genre || "Sacra"}</p>
+                <p className="text-xs text-muted-foreground">Compositor</p>
+                <p className="font-medium">{song.composer || "—"}</p>
               </CardContent>
             </Card>
+            {song.arranger && (
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Arranjo</p>
+                  <p className="font-medium">{song.arranger}</p>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Idioma</p>
-                <p className="font-medium">{song.language || "Latim"}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Tipo</p>
+                <p className="text-xs text-muted-foreground">Tipo de Vozes</p>
                 <p className="font-medium">{VOICING_LABELS[song.voicing_type]}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Textura</p>
-                <p className="font-medium">{song.texture || "—"}</p>
-              </CardContent>
-            </Card>
+            {song.texture && song.texture !== VOICING_LABELS[song.voicing_type] && (
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Textura</p>
+                  <p className="font-medium">{song.texture}</p>
+                </CardContent>
+              </Card>
+            )}
+            {song.copyright_info && (
+              <Card className="col-span-2">
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Copyright</p>
+                  <p className="font-medium text-sm">{song.copyright_info}</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
       </main>

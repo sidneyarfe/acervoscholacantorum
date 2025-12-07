@@ -12,13 +12,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -28,12 +21,12 @@ import { useUpdateProfile, Profile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+// Usuários comuns NÃO podem alterar naipe - apenas informações pessoais básicas
 const profileSchema = z.object({
   display_name: z.string().optional(),
   full_name: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
-  preferred_voice: z.enum(["soprano", "contralto", "tenor", "baixo"]).optional().nullable(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -54,7 +47,6 @@ export function ProfileEditForm({ profile, open, onOpenChange }: ProfileEditForm
       full_name: profile.full_name || "",
       phone: profile.phone || "",
       address: profile.address || "",
-      preferred_voice: profile.preferred_voice || null,
     },
   });
 
@@ -65,7 +57,6 @@ export function ProfileEditForm({ profile, open, onOpenChange }: ProfileEditForm
         full_name: data.full_name,
         phone: data.phone,
         address: data.address,
-        preferred_voice: data.preferred_voice,
       });
       toast.success("Perfil atualizado com sucesso");
       onOpenChange(false);
@@ -138,32 +129,9 @@ export function ProfileEditForm({ profile, open, onOpenChange }: ProfileEditForm
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="preferred_voice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Voz Preferida</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione sua voz" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="soprano">Soprano</SelectItem>
-                      <SelectItem value="contralto">Contralto</SelectItem>
-                      <SelectItem value="tenor">Tenor</SelectItem>
-                      <SelectItem value="baixo">Baixo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <p className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+              Para alterar seu naipe ou outras informações da Schola, entre em contato com o administrador.
+            </p>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

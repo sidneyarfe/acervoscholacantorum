@@ -13,13 +13,17 @@ import {
   Bell,
   HelpCircle,
   Loader2,
-  Pencil
+  Pencil,
+  Calendar,
+  Shirt,
+  Award
 } from "lucide-react";
-import { VoicePartSelector } from "@/components/VoicePartSelector";
 import { ProfileEditForm } from "@/components/ProfileEditForm";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const VOICE_MAP: Record<string, string> = {
   soprano: "Soprano",
@@ -31,27 +35,8 @@ const VOICE_MAP: Record<string, string> = {
 export function ProfileView() {
   const { user, signOut } = useAuth();
   const { data: profile, isLoading } = useProfile();
-  const updateProfile = useUpdateProfile();
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
-
-  const handleVoiceChange = async (voice: string) => {
-    try {
-      await updateProfile.mutateAsync({
-        preferred_voice: voice as "soprano" | "contralto" | "tenor" | "baixo",
-      });
-      toast({
-        title: "Naipe atualizado",
-        description: `Seu naipe foi alterado para ${VOICE_MAP[voice]}.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o naipe.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -67,6 +52,15 @@ export function ProfileView() {
       </div>
     );
   }
+
+  const formatJoinDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    try {
+      return format(new Date(dateStr), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -86,7 +80,7 @@ export function ProfileView() {
                   </div>
                   <div className="flex-1">
                     <h2 className="font-display text-lg lg:text-xl font-semibold">
-                      {profile?.display_name || "Membro da Schola"}
+                      {profile?.full_name || profile?.display_name || "Membro da Schola"}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {user?.email}
@@ -127,25 +121,86 @@ export function ProfileView() {
                   </Button>
                 </div>
                 <Card>
-                  <CardContent className="p-4 space-y-3">
-                    {profile.full_name && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Nome Completo</p>
-                        <p className="text-sm font-medium">{profile.full_name}</p>
+                  <CardContent className="p-4 space-y-4">
+                    {/* Dados Pessoais */}
+                    <div className="space-y-3">
+                      {profile.full_name && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Nome Completo</p>
+                          <p className="text-sm font-medium">{profile.full_name}</p>
+                        </div>
+                      )}
+                      {profile.cpf && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">CPF</p>
+                          <p className="text-sm font-medium">{profile.cpf}</p>
+                        </div>
+                      )}
+                      {profile.email && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Email</p>
+                          <p className="text-sm font-medium">{profile.email}</p>
+                        </div>
+                      )}
+                      {profile.phone && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Telefone</p>
+                          <p className="text-sm font-medium">{profile.phone}</p>
+                        </div>
+                      )}
+                      {profile.address && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Endereço</p>
+                          <p className="text-sm font-medium">{profile.address}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dados da Schola */}
+                    <div className="pt-3 border-t border-border space-y-3">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Na Schola</p>
+                      
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gold" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Data de Entrada</p>
+                          <p className="text-sm font-medium">
+                            {formatJoinDate(profile.join_date) || "Não informada"}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    {profile.phone && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Telefone</p>
-                        <p className="text-sm font-medium">{profile.phone}</p>
+
+                      <div className="flex items-center gap-2">
+                        <Music2 className="h-4 w-4 text-gold" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Naipe</p>
+                          <p className="text-sm font-medium">
+                            {profile.preferred_voice ? VOICE_MAP[profile.preferred_voice] : "Não definido"}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    {profile.address && (
-                      <div>
-                        <p className="text-xs text-muted-foreground">Endereço</p>
-                        <p className="text-sm font-medium">{profile.address}</p>
+
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {profile.has_vestment && (
+                          <Badge variant="outline" className="gap-1">
+                            <Shirt className="h-3 w-3" />
+                            Possui Veste
+                          </Badge>
+                        )}
+                        {profile.has_stole && (
+                          <Badge variant="outline" className="gap-1">
+                            <Award className="h-3 w-3" />
+                            Possui Estola
+                          </Badge>
+                        )}
+                        {!profile.has_vestment && !profile.has_stole && (
+                          <p className="text-xs text-muted-foreground">
+                            Nenhum item da Schola registrado
+                          </p>
+                        )}
                       </div>
-                    )}
+                    </div>
+
                     {!profile.full_name && !profile.phone && !profile.address && (
                       <p className="text-sm text-muted-foreground text-center py-2">
                         Clique em "Editar" para adicionar suas informações
@@ -155,17 +210,6 @@ export function ProfileView() {
                 </Card>
               </section>
             )}
-
-            {/* Seleção de Naipe */}
-            <section>
-              <h2 className="font-display text-lg lg:text-xl font-semibold mb-3 lg:mb-4">
-                Meu Naipe
-              </h2>
-              <VoicePartSelector
-                selectedVoice={profile?.preferred_voice || null}
-                onSelectVoice={handleVoiceChange}
-              />
-            </section>
 
             {/* Estatísticas */}
             <section>

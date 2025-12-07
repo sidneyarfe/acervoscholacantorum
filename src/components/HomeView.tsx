@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +7,7 @@ import { VoicePartSelector } from "@/components/VoicePartSelector";
 import { SongCard } from "@/components/SongCard";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrations } from "@/hooks/useCelebrations";
-import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import heroImage from "@/assets/hero-sacred.jpg";
 
@@ -29,29 +28,19 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
   const { data: songs, isLoading: loadingSongs } = useSongs();
   const { data: celebrations, isLoading: loadingCelebrations } = useCelebrations();
   const { data: profile } = useProfile();
-  const updateProfile = useUpdateProfile();
   const { toast } = useToast();
 
   const recentSongs = songs?.slice(0, 4) || [];
   const upcomingCelebrations = celebrations?.slice(0, 2) || [];
 
-  const handleVoiceSelect = async (voiceId: string) => {
-    try {
-      await updateProfile.mutateAsync({
-        preferred_voice: voiceId as "soprano" | "contralto" | "tenor" | "baixo",
-      });
-      onSelectVoice(voiceId);
-      toast({
-        title: "Naipe selecionado",
-        description: "Seu naipe preferido foi atualizado.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o naipe.",
-        variant: "destructive",
-      });
-    }
+  // Apenas seleção local para navegação - não salva no perfil
+  // Naipe no perfil só pode ser alterado pelo admin
+  const handleVoiceSelect = (voiceId: string) => {
+    onSelectVoice(voiceId);
+    toast({
+      title: "Naipe selecionado",
+      description: `Áudios de ${voiceId === 'soprano' ? 'Soprano' : voiceId === 'contralto' ? 'Contralto' : voiceId === 'tenor' ? 'Tenor' : 'Baixo'} serão priorizados.`,
+    });
   };
 
   return (

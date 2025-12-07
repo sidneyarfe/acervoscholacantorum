@@ -21,6 +21,18 @@ import {
 } from "@/components/ui/select";
 import { useCreateSong, useUpdateSong, Song } from "@/hooks/useAdminData";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  useSongGenres,
+  useSongTextures,
+  useSongLanguages,
+  useCreateGenre,
+  useCreateTexture,
+  useCreateLanguage,
+  useDeleteGenre,
+  useDeleteTexture,
+  useDeleteLanguage,
+} from "@/hooks/useSongOptions";
+import { OptionManager } from "./OptionManager";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -47,6 +59,19 @@ export function SongForm({ song, onClose }: SongFormProps) {
   const createSong = useCreateSong();
   const updateSong = useUpdateSong();
 
+  // Lookup options
+  const { data: genres = [], isLoading: loadingGenres } = useSongGenres();
+  const { data: textures = [], isLoading: loadingTextures } = useSongTextures();
+  const { data: languages = [], isLoading: loadingLanguages } = useSongLanguages();
+
+  // Mutations for managing options
+  const createGenre = useCreateGenre();
+  const createTexture = useCreateTexture();
+  const createLanguage = useCreateLanguage();
+  const deleteGenre = useDeleteGenre();
+  const deleteTexture = useDeleteTexture();
+  const deleteLanguage = useDeleteLanguage();
+
   const form = useForm<SongFormData>({
     resolver: zodResolver(songSchema),
     defaultValues: {
@@ -67,7 +92,7 @@ export function SongForm({ song, onClose }: SongFormProps) {
         await updateSong.mutateAsync({ id: song.id, ...data });
         toast.success("Música atualizada com sucesso");
       } else {
-        await createSong.mutateAsync({ 
+        await createSong.mutateAsync({
           title: data.title,
           composer: data.composer,
           arranger: data.arranger,
@@ -76,7 +101,7 @@ export function SongForm({ song, onClose }: SongFormProps) {
           genre: data.genre,
           language: data.language,
           copyright_info: data.copyright_info,
-          created_by: user?.id 
+          created_by: user?.id,
         });
         toast.success("Música criada com sucesso");
       }
@@ -164,7 +189,22 @@ export function SongForm({ song, onClose }: SongFormProps) {
             name="language"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Idioma</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Idioma</FormLabel>
+                  <OptionManager
+                    label="Idiomas"
+                    options={languages}
+                    isLoading={loadingLanguages}
+                    onCreate={async (name) => {
+                      await createLanguage.mutateAsync(name);
+                    }}
+                    onDelete={async (id) => {
+                      await deleteLanguage.mutateAsync(id);
+                    }}
+                    isCreating={createLanguage.isPending}
+                    isDeleting={deleteLanguage.isPending}
+                  />
+                </div>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -172,12 +212,11 @@ export function SongForm({ song, onClose }: SongFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Latim">Latim</SelectItem>
-                    <SelectItem value="Português">Português</SelectItem>
-                    <SelectItem value="Inglês">Inglês</SelectItem>
-                    <SelectItem value="Italiano">Italiano</SelectItem>
-                    <SelectItem value="Alemão">Alemão</SelectItem>
-                    <SelectItem value="Francês">Francês</SelectItem>
+                    {languages.map((lang) => (
+                      <SelectItem key={lang.id} value={lang.name}>
+                        {lang.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -192,10 +231,36 @@ export function SongForm({ song, onClose }: SongFormProps) {
             name="genre"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Gênero</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Sacro, Renascentista" {...field} />
-                </FormControl>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Gênero</FormLabel>
+                  <OptionManager
+                    label="Gêneros"
+                    options={genres}
+                    isLoading={loadingGenres}
+                    onCreate={async (name) => {
+                      await createGenre.mutateAsync(name);
+                    }}
+                    onDelete={async (id) => {
+                      await deleteGenre.mutateAsync(id);
+                    }}
+                    isCreating={createGenre.isPending}
+                    isDeleting={deleteGenre.isPending}
+                  />
+                </div>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o gênero" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {genres.map((g) => (
+                      <SelectItem key={g.id} value={g.name}>
+                        {g.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -206,10 +271,36 @@ export function SongForm({ song, onClose }: SongFormProps) {
             name="texture"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Textura</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Homofônico, Contrapontístico" {...field} />
-                </FormControl>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Textura</FormLabel>
+                  <OptionManager
+                    label="Texturas"
+                    options={textures}
+                    isLoading={loadingTextures}
+                    onCreate={async (name) => {
+                      await createTexture.mutateAsync(name);
+                    }}
+                    onDelete={async (id) => {
+                      await deleteTexture.mutateAsync(id);
+                    }}
+                    isCreating={createTexture.isPending}
+                    isDeleting={deleteTexture.isPending}
+                  />
+                </div>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a textura" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {textures.map((t) => (
+                      <SelectItem key={t.id} value={t.name}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

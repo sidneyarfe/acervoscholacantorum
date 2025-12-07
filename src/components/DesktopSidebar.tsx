@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Home, Library, Search, Calendar, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Library, Search, Calendar, User, ChevronLeft, ChevronRight, Shield } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import scholaLogo from "@/assets/schola-logo.png";
@@ -7,6 +7,7 @@ import scholaLogo from "@/assets/schola-logo.png";
 interface DesktopSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isAdmin?: boolean;
 }
 
 const navItems = [
@@ -17,8 +18,12 @@ const navItems = [
   { id: "profile", label: "Perfil", icon: User },
 ];
 
-export function DesktopSidebar({ activeTab, onTabChange }: DesktopSidebarProps) {
+export function DesktopSidebar({ activeTab, onTabChange, isAdmin }: DesktopSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  
+  const allNavItems = isAdmin 
+    ? [...navItems, { id: "admin", label: "Admin", icon: Shield }]
+    : navItems;
 
   return (
     <aside
@@ -54,7 +59,7 @@ export function DesktopSidebar({ activeTab, onTabChange }: DesktopSidebarProps) 
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1">
-        {navItems.map((item) => {
+        {allNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
 

@@ -6,12 +6,15 @@ import { SearchView } from "@/components/SearchView";
 import { CelebrationsView } from "@/components/CelebrationsView";
 import { ProfileView } from "@/components/ProfileView";
 import { SongDetail } from "@/components/SongDetail";
+import { AdminView } from "@/components/admin/AdminView";
 import { useSong } from "@/hooks/useSongs";
+import { useIsAdmin } from "@/hooks/useUserRole";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const { isAdmin } = useIsAdmin();
 
   const { data: selectedSong } = useSong(selectedSongId);
 
@@ -23,7 +26,6 @@ const Index = () => {
     setSelectedSongId(null);
   };
 
-  // If viewing a song detail, show that instead of the tab view
   if (selectedSong) {
     return <SongDetail song={selectedSong} onBack={handleBackFromSong} />;
   }
@@ -46,13 +48,15 @@ const Index = () => {
         return <CelebrationsView />;
       case "profile":
         return <ProfileView />;
+      case "admin":
+        return isAdmin ? <AdminView /> : null;
       default:
         return null;
     }
   };
 
   return (
-    <AppLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <AppLayout activeTab={activeTab} onTabChange={setActiveTab} isAdmin={isAdmin}>
       {renderContent()}
     </AppLayout>
   );

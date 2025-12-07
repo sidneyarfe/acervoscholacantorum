@@ -12,6 +12,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateCelebration, useUpdateCelebration, Celebration } from "@/hooks/useAdminData";
 import {
   useLiturgicalHierarchies,
@@ -25,9 +32,18 @@ import { ManageableSelect } from "./ManageableSelect";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+const LITURGICAL_SEASONS = [
+  { id: "branco", name: "Branco - Páscoa, Natal, Santos" },
+  { id: "verde", name: "Verde - Tempo Comum" },
+  { id: "vermelho", name: "Vermelho - Pentecostes, Mártires" },
+  { id: "roxo", name: "Roxo - Advento, Quaresma, Finados" },
+  { id: "rosa", name: "Rosa - Gaudete, Laetare" },
+];
+
 const celebrationSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   liturgical_rank: z.string().min(1, "Hierarquia litúrgica é obrigatória"),
+  liturgical_season: z.string().optional(),
   feast_type: z.string().optional(),
   date_rule: z.string().optional(),
   description: z.string().optional(),
@@ -63,6 +79,7 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
     defaultValues: {
       name: celebration?.name || "",
       liturgical_rank: celebration?.liturgical_rank || "",
+      liturgical_season: celebration?.liturgical_season || "",
       feast_type: celebration?.feast_type || "",
       date_rule: celebration?.date_rule || "",
       description: celebration?.description || "",
@@ -76,12 +93,18 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
       const liturgical_rank = (hierarchy?.value || data.liturgical_rank) as "solemnity" | "feast" | "memorial" | "optional_memorial";
 
       if (celebration) {
-        await updateCelebration.mutateAsync({ id: celebration.id, ...data, liturgical_rank });
+        await updateCelebration.mutateAsync({ 
+          id: celebration.id, 
+          ...data, 
+          liturgical_rank,
+          liturgical_season: data.liturgical_season || null,
+        });
         toast.success("Celebração atualizada com sucesso");
       } else {
         await createCelebration.mutateAsync({
           name: data.name,
           liturgical_rank,
+          liturgical_season: data.liturgical_season || null,
           feast_type: data.feast_type,
           date_rule: data.date_rule,
           description: data.description,
@@ -170,6 +193,31 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="liturgical_season"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tempo Litúrgico (Cor)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tempo litúrgico" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {LITURGICAL_SEASONS.map(season => (
+                    <SelectItem key={season.id} value={season.id}>
+                      {season.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}

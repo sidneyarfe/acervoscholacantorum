@@ -8,6 +8,7 @@ type Song = Tables<"songs">;
 interface SongCardProps {
   song: Song;
   onClick?: () => void;
+  audioVoices?: string[];
 }
 
 const VOICING_LABELS: Record<string, string> = {
@@ -16,10 +17,28 @@ const VOICING_LABELS: Record<string, string> = {
   unison: "Uníssono",
 };
 
-export function SongCard({ song, onClick }: SongCardProps) {
+const VOICE_LABELS: Record<string, string> = {
+  soprano: "Soprano",
+  contralto: "Contralto",
+  tenor: "Tenor",
+  baixo: "Baixo",
+};
+
+const VOICE_ORDER = ["soprano", "contralto", "tenor", "baixo"];
+
+export function SongCard({ song, onClick, audioVoices = [] }: SongCardProps) {
   const liturgicalTags = Array.isArray(song.liturgical_tags) 
     ? song.liturgical_tags as string[]
     : [];
+
+  // Sort voices in standard order
+  const sortedVoices = audioVoices
+    .sort((a, b) => VOICE_ORDER.indexOf(a) - VOICE_ORDER.indexOf(b))
+    .map(v => VOICE_LABELS[v] || v);
+
+  const audioLabel = sortedVoices.length > 0 
+    ? `Áudio: ${sortedVoices.join(", ")}`
+    : "Áudio";
 
   return (
     <Card
@@ -59,7 +78,9 @@ export function SongCard({ song, onClick }: SongCardProps) {
               </div>
               <div className="flex items-center gap-1">
                 <Headphones className="w-3.5 h-3.5" />
-                <span>Áudio</span>
+                <span className={sortedVoices.length > 0 ? "text-emerald-600" : ""}>
+                  {audioLabel}
+                </span>
               </div>
             </div>
           </div>

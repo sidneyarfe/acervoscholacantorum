@@ -4,6 +4,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { SongCard } from "@/components/SongCard";
 import { Badge } from "@/components/ui/badge";
 import { useSongs } from "@/hooks/useSongs";
+import { useSongsAudioParts } from "@/hooks/useSongAudioParts";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
@@ -32,6 +33,8 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   const { data: songs, isLoading } = useSongs();
+  const songIds = useMemo(() => songs?.map(s => s.id) || [], [songs]);
+  const { data: songsAudioParts } = useSongsAudioParts(songIds);
 
   const filteredSongs = useMemo(() => {
     if (!songs) return [];
@@ -142,6 +145,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
                   key={song.id}
                   song={song}
                   onClick={() => onSelectSong(song.id)}
+                  audioVoices={songsAudioParts?.[song.id] || []}
                 />
               ))
             ) : (

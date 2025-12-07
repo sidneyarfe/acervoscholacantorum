@@ -20,17 +20,17 @@ import {
   useSongTextures,
   useSongLanguages,
   useVoiceTypes,
-  useLiturgicalHierarchies,
+  useSongTags,
   useCreateGenre,
   useCreateTexture,
   useCreateLanguage,
   useCreateVoiceType,
-  useCreateLiturgicalHierarchy,
+  useCreateSongTag,
   useDeleteGenre,
   useDeleteTexture,
   useDeleteLanguage,
   useDeleteVoiceType,
-  useDeleteLiturgicalHierarchy,
+  useDeleteSongTag,
 } from "@/hooks/useSongOptions";
 import { ManageableSelect } from "./ManageableSelect";
 import { toast } from "sonner";
@@ -77,10 +77,10 @@ export function SongForm({ song, onClose }: SongFormProps) {
   const deleteLanguage = useDeleteLanguage();
   const deleteVoiceType = useDeleteVoiceType();
 
-  // Liturgical tags management
-  const { data: liturgicalOptions = [], isLoading: loadingLiturgical } = useLiturgicalHierarchies();
-  const createLiturgicalHierarchy = useCreateLiturgicalHierarchy();
-  const deleteLiturgicalHierarchy = useDeleteLiturgicalHierarchy();
+  // Song tags management
+  const { data: tagOptions = [], isLoading: loadingTags } = useSongTags();
+  const createSongTag = useCreateSongTag();
+  const deleteSongTag = useDeleteSongTag();
 
   const initialTags = Array.isArray(song?.liturgical_tags) 
     ? song.liturgical_tags as string[]
@@ -330,24 +330,24 @@ export function SongForm({ song, onClose }: SongFormProps) {
           />
         </div>
 
-        {/* Tags Litúrgicas */}
+        {/* Tags */}
         <FormItem>
-          <FormLabel>Tags Litúrgicas</FormLabel>
+          <FormLabel>Tags</FormLabel>
           <div className="space-y-3">
             <ManageableSelect
               value=""
               onValueChange={(value) => handleAddTag(value)}
-              placeholder="Adicionar tag litúrgica..."
-              options={liturgicalOptions.filter(opt => !selectedTags.includes(opt.name))}
-              isLoading={loadingLiturgical}
+              placeholder="Adicionar tag..."
+              options={tagOptions.filter(opt => !selectedTags.includes(opt.name))}
+              isLoading={loadingTags}
               onCreate={async (name) => {
-                await createLiturgicalHierarchy.mutateAsync(name);
+                await createSongTag.mutateAsync(name);
               }}
               onDelete={async (id) => {
-                await deleteLiturgicalHierarchy.mutateAsync(id);
+                await deleteSongTag.mutateAsync(id);
               }}
-              isCreating={createLiturgicalHierarchy.isPending}
-              isDeleting={deleteLiturgicalHierarchy.isPending}
+              isCreating={createSongTag.isPending}
+              isDeleting={deleteSongTag.isPending}
             />
             {selectedTags.length > 0 && (
               <div className="flex flex-wrap gap-2">

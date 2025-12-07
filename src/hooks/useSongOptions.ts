@@ -237,3 +237,49 @@ export function useDeleteLiturgicalHierarchy() {
     },
   });
 }
+
+// ===== SONG TAGS =====
+export function useSongTags() {
+  return useQuery({
+    queryKey: ["song-tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("song_tags")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data as LookupOption[];
+    },
+  });
+}
+
+export function useCreateSongTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase
+        .from("song_tags")
+        .insert({ name })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["song-tags"] });
+    },
+  });
+}
+
+export function useDeleteSongTag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("song_tags").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["song-tags"] });
+    },
+  });
+}

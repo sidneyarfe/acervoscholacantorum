@@ -9,6 +9,7 @@ import { useSongs } from "@/hooks/useSongs";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useProfile } from "@/hooks/useProfile";
 import { useAudioCount } from "@/hooks/useAudioCount";
+import { useSongsAudioParts } from "@/hooks/useSongAudioParts";
 import { useToast } from "@/hooks/use-toast";
 import heroImage from "@/assets/hero-sacred.jpg";
 
@@ -35,6 +36,8 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
   const { toast } = useToast();
 
   const recentSongs = songs?.slice(0, 4) || [];
+  const songIds = recentSongs.map(s => s.id);
+  const { data: songsAudioParts } = useSongsAudioParts(songIds);
   const upcomingCelebrations = celebrations?.slice(0, 2) || [];
 
   // Apenas seleção local para navegação - não salva no perfil
@@ -140,7 +143,12 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
                 ) : (
                   <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                     {recentSongs.map((song) => (
-                      <SongCard key={song.id} song={song} onClick={() => onSelectSong(song.id)} />
+                      <SongCard 
+                        key={song.id} 
+                        song={song} 
+                        onClick={() => onSelectSong(song.id)}
+                        audioVoices={songsAudioParts?.[song.id] || []}
+                      />
                     ))}
                   </div>
                 )}

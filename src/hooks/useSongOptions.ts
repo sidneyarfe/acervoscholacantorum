@@ -283,3 +283,49 @@ export function useDeleteSongTag() {
     },
   });
 }
+
+// ===== CELEBRATION TYPES =====
+export function useCelebrationTypes() {
+  return useQuery({
+    queryKey: ["celebration-types"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("celebration_types")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data as LookupOption[];
+    },
+  });
+}
+
+export function useCreateCelebrationType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase
+        .from("celebration_types")
+        .insert({ name })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["celebration-types"] });
+    },
+  });
+}
+
+export function useDeleteCelebrationType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("celebration_types").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["celebration-types"] });
+    },
+  });
+}

@@ -10,13 +10,59 @@ import {
   LogOut,
   ChevronRight,
   Bell,
-  HelpCircle
+  HelpCircle,
+  Loader2
 } from "lucide-react";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
-import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useToast } from "@/hooks/use-toast";
+
+const VOICE_MAP: Record<string, string> = {
+  soprano: "Soprano",
+  contralto: "Contralto",
+  tenor: "Tenor",
+  baixo: "Baixo",
+};
 
 export function ProfileView() {
-  const [selectedVoice, setSelectedVoice] = useState<string | null>("tenor");
+  const { user, signOut } = useAuth();
+  const { data: profile, isLoading } = useProfile();
+  const updateProfile = useUpdateProfile();
+  const { toast } = useToast();
+
+  const handleVoiceChange = async (voice: string) => {
+    try {
+      await updateProfile.mutateAsync({
+        preferred_voice: voice as "soprano" | "contralto" | "tenor" | "baixo",
+      });
+      toast({
+        title: "Naipe atualizado",
+        description: `Seu naipe foi alterado para ${VOICE_MAP[voice]}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o naipe.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header title="Perfil" showLogo={false} />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-gold" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -36,14 +82,16 @@ export function ProfileView() {
                   </div>
                   <div className="flex-1">
                     <h2 className="font-display text-lg lg:text-xl font-semibold">
-                      Membro da Schola
+                      {profile?.display_name || "Membro da Schola"}
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      membro@scholacantorum.org
+                      {user?.email}
                     </p>
-                    <Badge variant="gold" className="mt-2">
-                      Tenor
-                    </Badge>
+                    {profile?.preferred_voice && (
+                      <Badge variant="gold" className="mt-2">
+                        {VOICE_MAP[profile.preferred_voice]}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -55,8 +103,8 @@ export function ProfileView() {
                 Meu Naipe
               </h2>
               <VoicePartSelector
-                selectedVoice={selectedVoice}
-                onSelectVoice={setSelectedVoice}
+                selectedVoice={profile?.preferred_voice || null}
+                onSelectVoice={handleVoiceChange}
               />
             </section>
 
@@ -69,7 +117,7 @@ export function ProfileView() {
                 <Card variant="sacred">
                   <CardContent className="p-4 lg:p-5 text-center">
                     <Music2 className="w-5 h-5 lg:w-6 lg:h-6 mx-auto mb-2 text-gold" />
-                    <p className="text-2xl lg:text-3xl font-display font-bold">12</p>
+                    <p className="text-2xl lg:text-3xl font-display font-bold">0</p>
                     <p className="text-[10px] lg:text-xs text-muted-foreground">
                       Músicas acessadas
                     </p>
@@ -78,7 +126,7 @@ export function ProfileView() {
                 <Card variant="sacred">
                   <CardContent className="p-4 lg:p-5 text-center">
                     <Download className="w-5 h-5 lg:w-6 lg:h-6 mx-auto mb-2 text-rose" />
-                    <p className="text-2xl lg:text-3xl font-display font-bold">8</p>
+                    <p className="text-2xl lg:text-3xl font-display font-bold">0</p>
                     <p className="text-[10px] lg:text-xs text-muted-foreground">
                       Downloads
                     </p>
@@ -87,7 +135,7 @@ export function ProfileView() {
                 <Card variant="sacred">
                   <CardContent className="p-4 lg:p-5 text-center">
                     <Music2 className="w-5 h-5 lg:w-6 lg:h-6 mx-auto mb-2 text-gold" />
-                    <p className="text-2xl lg:text-3xl font-display font-bold">45</p>
+                    <p className="text-2xl lg:text-3xl font-display font-bold">0</p>
                     <p className="text-[10px] lg:text-xs text-muted-foreground">
                       Min. ouvidos
                     </p>
@@ -106,7 +154,7 @@ export function ProfileView() {
               <div className="space-y-2">
                 {[
                   { icon: Bell, label: "Notificações", desc: "Ativadas" },
-                  { icon: Download, label: "Downloads", desc: "8 arquivos offline" },
+                  { icon: Download, label: "Downloads", desc: "0 arquivos offline" },
                   { icon: Settings, label: "Preferências", desc: "Áudio e exibição" },
                   { icon: HelpCircle, label: "Ajuda", desc: "Suporte e FAQ" },
                 ].map((item) => (
@@ -129,7 +177,12 @@ export function ProfileView() {
             </section>
 
             {/* Sair */}
-            <Button variant="outline" className="w-full" size="lg">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              size="lg"
+              onClick={handleSignOut}
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sair
             </Button>

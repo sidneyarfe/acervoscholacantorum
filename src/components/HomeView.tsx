@@ -25,7 +25,7 @@ interface HomeViewProps {
 
 export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewProps) {
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
-  const recentSongs = MOCK_SONGS.slice(0, 3);
+  const recentSongs = MOCK_SONGS.slice(0, 4);
   const upcomingCelebrations = MOCK_CELEBRATIONS.slice(0, 2);
 
   const handleVoiceSelect = (voiceId: string) => {
@@ -34,31 +34,31 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
   };
 
   return (
-    <div className="flex flex-col min-h-screen pb-24">
+    <div className="flex flex-col min-h-screen">
       <Header />
 
-      <main className="flex-1">
+      <div className="flex-1">
         {/* Seção Hero */}
-        <section className="relative h-44 overflow-hidden">
+        <section className="relative h-44 lg:h-56 overflow-hidden">
           <img
             src={heroImage}
             alt="Manuscrito de música sacra"
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p className="text-xs uppercase tracking-wider text-gold font-medium mb-1">
+          <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-8">
+            <p className="text-xs lg:text-sm uppercase tracking-wider text-gold font-medium mb-1">
               Desde 1735
             </p>
-            <h2 className="font-display text-xl font-semibold text-foreground">
+            <h2 className="font-display text-xl lg:text-3xl font-semibold text-foreground">
               Arquivo Musical Digital
             </h2>
           </div>
         </section>
 
-        <div className="px-4 py-6 space-y-8">
-          {/* Ações Rápidas */}
-          <section>
+        <div className="px-4 lg:px-8 py-6 lg:py-8 space-y-8">
+          {/* Ações Rápidas - ocultar em desktop pois já tem a sidebar */}
+          <section className="lg:hidden">
             <div className="grid grid-cols-2 gap-3">
               <Card
                 variant="interactive"
@@ -94,55 +94,150 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
             </div>
           </section>
 
-          {/* Seleção de Naipe */}
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-lg font-semibold">Meu Naipe</h2>
-              {selectedVoice && (
-                <Badge variant="gold" className="text-xs">
-                  Selecionado
-                </Badge>
-              )}
-            </div>
-            <VoicePartSelector
-              selectedVoice={selectedVoice}
-              onSelectVoice={handleVoiceSelect}
-            />
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              Selecione seu naipe para acesso rápido aos áudios
-            </p>
-          </section>
-
-          {/* Músicas Recentes */}
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-                <Clock className="w-5 h-5 text-gold" />
-                Acessados Recentemente
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gold"
-                onClick={() => onNavigate("library")}
-              >
-                Ver todos
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {recentSongs.map((song) => (
-                <SongCard
-                  key={song.id}
-                  song={song}
-                  onClick={() => onSelectSong(song.id)}
+          {/* Layout Desktop: Grid com duas colunas */}
+          <div className="lg:grid lg:grid-cols-3 lg:gap-8">
+            {/* Coluna Principal */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Seleção de Naipe */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-display text-lg lg:text-xl font-semibold">Meu Naipe</h2>
+                  {selectedVoice && (
+                    <Badge variant="gold" className="text-xs">
+                      Selecionado
+                    </Badge>
+                  )}
+                </div>
+                <VoicePartSelector
+                  selectedVoice={selectedVoice}
+                  onSelectVoice={handleVoiceSelect}
                 />
-              ))}
-            </div>
-          </section>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  Selecione seu naipe para acesso rápido aos áudios
+                </p>
+              </section>
 
-          {/* Próximas Celebrações */}
-          <section>
+              {/* Músicas Recentes */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-display text-lg lg:text-xl font-semibold flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-gold" />
+                    Acessados Recentemente
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gold"
+                    onClick={() => onNavigate("library")}
+                  >
+                    Ver todos
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+                <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                  {recentSongs.map((song) => (
+                    <SongCard
+                      key={song.id}
+                      song={song}
+                      onClick={() => onSelectSong(song.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            {/* Coluna Lateral - Desktop */}
+            <div className="hidden lg:block space-y-6">
+              {/* Próximas Celebrações */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-rose" />
+                    Próximas Celebrações
+                  </h2>
+                </div>
+                <div className="space-y-3">
+                  {upcomingCelebrations.map((celebration) => (
+                    <Card key={celebration.id} variant="interactive">
+                      <CardContent className="p-4">
+                        <Badge
+                          variant="liturgical"
+                          className="mb-2 text-[10px]"
+                        >
+                          {celebration.liturgicalRank === "solemnity"
+                            ? "SOLENIDADE"
+                            : celebration.liturgicalRank === "feast"
+                            ? "FESTA"
+                            : "MEMORIAL"}
+                        </Badge>
+                        <h3 className="font-display font-semibold text-base">
+                          {celebration.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {celebration.description}
+                        </p>
+                        <p className="text-xs text-gold mt-2">
+                          {celebration.dateRule}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-rose w-full mt-3"
+                  onClick={() => onNavigate("calendar")}
+                >
+                  Ver todas as celebrações
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </section>
+
+              {/* Estatísticas Desktop */}
+              <section className="bg-parchment rounded-2xl p-5">
+                <h3 className="font-display text-sm font-semibold text-muted-foreground mb-4">
+                  Nosso Acervo
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gold/10">
+                      <Music2 className="w-5 h-5 text-gold" />
+                    </div>
+                    <div>
+                      <p className="text-xl font-display font-bold text-foreground">
+                        {MOCK_SONGS.length}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Músicas</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-rose/10">
+                      <Calendar className="w-5 h-5 text-rose" />
+                    </div>
+                    <div>
+                      <p className="text-xl font-display font-bold text-foreground">
+                        {MOCK_CELEBRATIONS.length}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Celebrações</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gold/10">
+                      <Headphones className="w-5 h-5 text-gold" />
+                    </div>
+                    <div>
+                      <p className="text-xl font-display font-bold text-foreground">24</p>
+                      <p className="text-xs text-muted-foreground">Áudios</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          {/* Mobile: Próximas Celebrações */}
+          <section className="lg:hidden">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-lg font-semibold flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-rose" />
@@ -193,8 +288,8 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
             </div>
           </section>
 
-          {/* Estatísticas */}
-          <section className="bg-parchment rounded-2xl p-4">
+          {/* Mobile: Estatísticas */}
+          <section className="bg-parchment rounded-2xl p-4 lg:hidden">
             <h3 className="font-display text-sm font-semibold text-muted-foreground mb-3">
               Nosso Acervo
             </h3>
@@ -227,7 +322,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
             </div>
           </section>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

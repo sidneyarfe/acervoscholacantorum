@@ -37,38 +37,42 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
   }, [searchQuery]);
 
   return (
-    <div className="flex flex-col min-h-screen pb-24">
+    <div className="flex flex-col min-h-screen">
       <Header title="Buscar" showLogo={false} />
 
-      <main className="flex-1 px-4 py-4 space-y-6">
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onClear={() => setSearchQuery("")}
-          placeholder="Buscar por título, compositor, celebração..."
-        />
+      <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-6">
+        <div className="lg:max-w-2xl">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onClear={() => setSearchQuery("")}
+            placeholder="Buscar por título, compositor, celebração..."
+          />
+        </div>
 
         {!searchQuery.trim() ? (
           /* Sugestões */
-          <div className="space-y-4">
-            <h2 className="font-display text-lg font-semibold">Sugestões</h2>
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  onClick={() => setSearchQuery(suggestion)}
-                  className="px-4 py-2 rounded-full bg-muted text-sm text-muted-foreground hover:bg-gold/10 hover:text-gold transition-colors"
-                >
-                  {suggestion}
-                </button>
-              ))}
+          <div className="space-y-6 lg:space-y-8">
+            <div className="space-y-4">
+              <h2 className="font-display text-lg lg:text-xl font-semibold">Sugestões</h2>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => setSearchQuery(suggestion)}
+                    className="px-4 py-2 rounded-full bg-muted text-sm text-muted-foreground hover:bg-gold/10 hover:text-gold transition-colors"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="pt-6">
-              <h2 className="font-display text-lg font-semibold mb-4">
+            <div>
+              <h2 className="font-display text-lg lg:text-xl font-semibold mb-4">
                 Buscar por Categoria
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {[
                   { label: "Entrada", icon: "🚪" },
                   { label: "Comunhão", icon: "🍞" },
@@ -98,7 +102,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
             </p>
 
             {searchResults.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
                 {searchResults.map((song) => (
                   <SongCard
                     key={song.id}

@@ -61,21 +61,23 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen pb-24">
+    <div className="flex flex-col min-h-screen">
       <Header title="Repertório" showLogo={false} />
 
-      <main className="flex-1 px-4 py-4 space-y-4">
+      <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6">
         {/* Busca */}
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onClear={() => setSearchQuery("")}
-          filters={activeFilters}
-          onRemoveFilter={removeFilter}
-        />
+        <div className="lg:max-w-2xl">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onClear={() => setSearchQuery("")}
+            filters={activeFilters}
+            onRemoveFilter={removeFilter}
+          />
+        </div>
 
         {/* Abas de Filtro */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
           {FILTER_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -93,7 +95,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
         </div>
 
         {/* Chips de Filtro Rápido */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
           {SONG_CATEGORIES.slice(0, 5).map((category) => (
             <Badge
               key={category}
@@ -117,8 +119,8 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
           </p>
         </div>
 
-        {/* Lista de Músicas */}
-        <div className="space-y-3">
+        {/* Lista de Músicas - Grid em Desktop */}
+        <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
           {filteredSongs.length > 0 ? (
             filteredSongs.map((song) => (
               <SongCard
@@ -128,7 +130,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
               />
             ))
           ) : (
-            <div className="text-center py-12">
+            <div className="text-center py-12 lg:col-span-full">
               <p className="text-muted-foreground">
                 Nenhuma música encontrada
               </p>

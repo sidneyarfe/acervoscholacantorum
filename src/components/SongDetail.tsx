@@ -205,7 +205,7 @@ export function SongDetail({ song, onBack }: SongDetailProps) {
             </Card>
             <Card>
               <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Vozes</p>
+                <p className="text-xs text-muted-foreground">Naipes</p>
                 <p className="font-medium">{song.texture || VOICING_LABELS[song.voicing_type]}</p>
               </CardContent>
             </Card>

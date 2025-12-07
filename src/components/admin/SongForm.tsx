@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -19,18 +20,22 @@ import {
   useSongTextures,
   useSongLanguages,
   useVoiceTypes,
+  useLiturgicalHierarchies,
   useCreateGenre,
   useCreateTexture,
   useCreateLanguage,
   useCreateVoiceType,
+  useCreateLiturgicalHierarchy,
   useDeleteGenre,
   useDeleteTexture,
   useDeleteLanguage,
   useDeleteVoiceType,
+  useDeleteLiturgicalHierarchy,
 } from "@/hooks/useSongOptions";
 import { ManageableSelect } from "./ManageableSelect";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
+import { useState } from "react";
 
 const songSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -41,6 +46,7 @@ const songSchema = z.object({
   genre: z.string().optional(),
   language: z.string().optional(),
   copyright_info: z.string().optional(),
+  liturgical_tags: z.array(z.string()).optional(),
 });
 
 type SongFormData = z.infer<typeof songSchema>;
@@ -71,6 +77,16 @@ export function SongForm({ song, onClose }: SongFormProps) {
   const deleteLanguage = useDeleteLanguage();
   const deleteVoiceType = useDeleteVoiceType();
 
+  // Liturgical tags management
+  const { data: liturgicalOptions = [], isLoading: loadingLiturgical } = useLiturgicalHierarchies();
+  const createLiturgicalHierarchy = useCreateLiturgicalHierarchy();
+  const deleteLiturgicalHierarchy = useDeleteLiturgicalHierarchy();
+
+  const initialTags = Array.isArray(song?.liturgical_tags) 
+    ? song.liturgical_tags as string[]
+    : [];
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
+
   const form = useForm<SongFormData>({
     resolver: zodResolver(songSchema),
     defaultValues: {
@@ -82,8 +98,23 @@ export function SongForm({ song, onClose }: SongFormProps) {
       genre: song?.genre || "",
       language: song?.language || "Latim",
       copyright_info: song?.copyright_info || "",
+      liturgical_tags: initialTags,
     },
   });
+
+  const handleAddTag = (tagName: string) => {
+    if (!selectedTags.includes(tagName)) {
+      const newTags = [...selectedTags, tagName];
+      setSelectedTags(newTags);
+      form.setValue("liturgical_tags", newTags);
+    }
+  };
+
+  const handleRemoveTag = (tagName: string) => {
+    const newTags = selectedTags.filter((t) => t !== tagName);
+    setSelectedTags(newTags);
+    form.setValue("liturgical_tags", newTags);
+  };
 
   const onSubmit = async (data: SongFormData) => {
     try {
@@ -96,7 +127,12 @@ export function SongForm({ song, onClose }: SongFormProps) {
       const voicing_type = voicingMap[data.voicing_type] || "polyphonic";
 
       if (song) {
-        await updateSong.mutateAsync({ id: song.id, ...data, voicing_type });
+        await updateSong.mutateAsync({ 
+          id: song.id, 
+          ...data, 
+          voicing_type,
+          liturgical_tags: selectedTags,
+        });
         toast.success("Música atualizada com sucesso");
       } else {
         await createSong.mutateAsync({
@@ -108,6 +144,7 @@ export function SongForm({ song, onClose }: SongFormProps) {
           genre: data.genre,
           language: data.language,
           copyright_info: data.copyright_info,
+          liturgical_tags: selectedTags,
           created_by: user?.id,
         });
         toast.success("Música criada com sucesso");
@@ -292,6 +329,44 @@ export function SongForm({ song, onClose }: SongFormProps) {
             )}
           />
         </div>
+
+        {/* Tags Litúrgicas */}
+        <FormItem>
+          <FormLabel>Tags Litúrgicas</FormLabel>
+          <div className="space-y-3">
+            <ManageableSelect
+              value=""
+              onValueChange={(value) => handleAddTag(value)}
+              placeholder="Adicionar tag litúrgica..."
+              options={liturgicalOptions.filter(opt => !selectedTags.includes(opt.name))}
+              isLoading={loadingLiturgical}
+              onCreate={async (name) => {
+                await createLiturgicalHierarchy.mutateAsync(name);
+              }}
+              onDelete={async (id) => {
+                await deleteLiturgicalHierarchy.mutateAsync(id);
+              }}
+              isCreating={createLiturgicalHierarchy.isPending}
+              isDeleting={deleteLiturgicalHierarchy.isPending}
+            />
+            {selectedTags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedTags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </FormItem>
 
         <FormField
           control={form.control}

@@ -1,9 +1,10 @@
-import { Search, Home, Library, Calendar, User } from "lucide-react";
+import { Search, Home, Library, Calendar, User, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isAdmin?: boolean;
 }
 
 const navItems = [
@@ -14,11 +15,14 @@ const navItems = [
   { id: "profile", label: "Perfil", icon: User },
 ];
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, isAdmin }: BottomNavProps) {
+  const allNavItems = isAdmin 
+    ? [...navItems, { id: "admin", label: "Admin", icon: Shield }]
+    : navItems;
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-lg safe-area-inset-bottom">
       <div className="flex items-center justify-around px-2 py-2">
-        {navItems.map((item) => {
+        {allNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           

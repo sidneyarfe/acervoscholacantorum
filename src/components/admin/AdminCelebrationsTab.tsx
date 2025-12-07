@@ -45,6 +45,22 @@ const rankColors: Record<string, string> = {
   optional_memorial: "bg-muted text-muted-foreground border-border",
 };
 
+const seasonLabels: Record<string, string> = {
+  branco: "Branco",
+  verde: "Verde",
+  vermelho: "Vermelho",
+  roxo: "Roxo",
+  rosa: "Rosa",
+};
+
+const seasonColors: Record<string, string> = {
+  branco: "bg-slate-100 text-slate-700 border-slate-300",
+  verde: "bg-emerald-100 text-emerald-700 border-emerald-300",
+  vermelho: "bg-red-100 text-red-700 border-red-300",
+  roxo: "bg-purple-100 text-purple-700 border-purple-300",
+  rosa: "bg-pink-100 text-pink-700 border-pink-300",
+};
+
 export function AdminCelebrationsTab() {
   const { data: celebrations, isLoading } = useAdminCelebrations();
   const deleteCelebration = useDeleteCelebration();
@@ -102,6 +118,7 @@ export function AdminCelebrationsTab() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead className="hidden md:table-cell">Hierarquia Litúrgica</TableHead>
+                  <TableHead className="hidden lg:table-cell">Cor Litúrgica</TableHead>
                   <TableHead className="hidden sm:table-cell">Tipo de Celebração</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -114,6 +131,15 @@ export function AdminCelebrationsTab() {
                       <Badge variant="outline" className={rankColors[celebration.liturgical_rank]}>
                         {rankLabels[celebration.liturgical_rank]}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {celebration.liturgical_season ? (
+                        <Badge variant="outline" className={seasonColors[celebration.liturgical_season]}>
+                          {seasonLabels[celebration.liturgical_season]}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground">
                       {celebration.feast_type || "-"}
@@ -143,7 +169,7 @@ export function AdminCelebrationsTab() {
                 ))}
                 {!celebrations?.length && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       Nenhuma celebração cadastrada
                     </TableCell>
                   </TableRow>

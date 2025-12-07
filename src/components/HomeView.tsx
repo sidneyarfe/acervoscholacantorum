@@ -9,12 +9,16 @@ import {
   Clock, 
   ChevronRight,
   BookOpen,
-  Headphones
+  Headphones,
+  Loader2
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
 import { SongCard } from "@/components/SongCard";
-import { MOCK_SONGS, MOCK_CELEBRATIONS } from "@/lib/data";
+import { useSongs } from "@/hooks/useSongs";
+import { useCelebrations } from "@/hooks/useCelebrations";
+import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useToast } from "@/hooks/use-toast";
 import heroImage from "@/assets/hero-sacred.jpg";
 
 interface HomeViewProps {
@@ -23,14 +27,40 @@ interface HomeViewProps {
   onSelectSong: (songId: string) => void;
 }
 
-export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewProps) {
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
-  const recentSongs = MOCK_SONGS.slice(0, 4);
-  const upcomingCelebrations = MOCK_CELEBRATIONS.slice(0, 2);
+const LITURGICAL_RANK_LABELS: Record<string, string> = {
+  solemnity: "SOLENIDADE",
+  feast: "FESTA",
+  memorial: "MEMORIAL",
+  optional_memorial: "MEMORIAL OPCIONAL",
+};
 
-  const handleVoiceSelect = (voiceId: string) => {
-    setSelectedVoice(voiceId);
-    onSelectVoice(voiceId);
+export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewProps) {
+  const { data: songs, isLoading: loadingSongs } = useSongs();
+  const { data: celebrations, isLoading: loadingCelebrations } = useCelebrations();
+  const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
+  const { toast } = useToast();
+
+  const recentSongs = songs?.slice(0, 4) || [];
+  const upcomingCelebrations = celebrations?.slice(0, 2) || [];
+
+  const handleVoiceSelect = async (voiceId: string) => {
+    try {
+      await updateProfile.mutateAsync({
+        preferred_voice: voiceId as "soprano" | "contralto" | "tenor" | "baixo",
+      });
+      onSelectVoice(voiceId);
+      toast({
+        title: "Naipe selecionado",
+        description: "Seu naipe preferido foi atualizado.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o naipe.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -102,14 +132,14 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-display text-lg lg:text-xl font-semibold">Meu Naipe</h2>
-                  {selectedVoice && (
+                  {profile?.preferred_voice && (
                     <Badge variant="gold" className="text-xs">
                       Selecionado
                     </Badge>
                   )}
                 </div>
                 <VoicePartSelector
-                  selectedVoice={selectedVoice}
+                  selectedVoice={profile?.preferred_voice || null}
                   onSelectVoice={handleVoiceSelect}
                 />
                 <p className="text-xs text-muted-foreground text-center mt-3">
@@ -122,7 +152,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-display text-lg lg:text-xl font-semibold flex items-center gap-2">
                     <Clock className="w-5 h-5 text-gold" />
-                    Acessados Recentemente
+                    Músicas do Acervo
                   </h2>
                   <Button
                     variant="ghost"
@@ -134,15 +164,21 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                     <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
-                <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                  {recentSongs.map((song) => (
-                    <SongCard
-                      key={song.id}
-                      song={song}
-                      onClick={() => onSelectSong(song.id)}
-                    />
-                  ))}
-                </div>
+                {loadingSongs ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-gold" />
+                  </div>
+                ) : (
+                  <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                    {recentSongs.map((song) => (
+                      <SongCard
+                        key={song.id}
+                        song={song}
+                        onClick={() => onSelectSong(song.id)}
+                      />
+                    ))}
+                  </div>
+                )}
               </section>
             </div>
 
@@ -156,33 +192,35 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                     Próximas Celebrações
                   </h2>
                 </div>
-                <div className="space-y-3">
-                  {upcomingCelebrations.map((celebration) => (
-                    <Card key={celebration.id} variant="interactive">
-                      <CardContent className="p-4">
-                        <Badge
-                          variant="liturgical"
-                          className="mb-2 text-[10px]"
-                        >
-                          {celebration.liturgicalRank === "solemnity"
-                            ? "SOLENIDADE"
-                            : celebration.liturgicalRank === "feast"
-                            ? "FESTA"
-                            : "MEMORIAL"}
-                        </Badge>
-                        <h3 className="font-display font-semibold text-base">
-                          {celebration.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {celebration.description}
-                        </p>
-                        <p className="text-xs text-gold mt-2">
-                          {celebration.dateRule}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                {loadingCelebrations ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-rose" />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingCelebrations.map((celebration) => (
+                      <Card key={celebration.id} variant="interactive">
+                        <CardContent className="p-4">
+                          <Badge
+                            variant="liturgical"
+                            className="mb-2 text-[10px]"
+                          >
+                            {LITURGICAL_RANK_LABELS[celebration.liturgical_rank]}
+                          </Badge>
+                          <h3 className="font-display font-semibold text-base">
+                            {celebration.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {celebration.description}
+                          </p>
+                          <p className="text-xs text-gold mt-2">
+                            {celebration.date_rule}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -206,7 +244,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                     </div>
                     <div>
                       <p className="text-xl font-display font-bold text-foreground">
-                        {MOCK_SONGS.length}
+                        {songs?.length || 0}
                       </p>
                       <p className="text-xs text-muted-foreground">Músicas</p>
                     </div>
@@ -217,7 +255,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                     </div>
                     <div>
                       <p className="text-xl font-display font-bold text-foreground">
-                        {MOCK_CELEBRATIONS.length}
+                        {celebrations?.length || 0}
                       </p>
                       <p className="text-xs text-muted-foreground">Celebrações</p>
                     </div>
@@ -227,7 +265,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                       <Headphones className="w-5 h-5 text-gold" />
                     </div>
                     <div>
-                      <p className="text-xl font-display font-bold text-foreground">24</p>
+                      <p className="text-xl font-display font-bold text-foreground">0</p>
                       <p className="text-xs text-muted-foreground">Áudios</p>
                     </div>
                   </div>
@@ -253,39 +291,41 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
-            <div className="space-y-3">
-              {upcomingCelebrations.map((celebration) => (
-                <Card key={celebration.id} variant="interactive">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <Badge
-                          variant="liturgical"
-                          className="mb-2 text-[10px]"
-                        >
-                          {celebration.liturgicalRank === "solemnity"
-                            ? "SOLENIDADE"
-                            : celebration.liturgicalRank === "feast"
-                            ? "FESTA"
-                            : "MEMORIAL"}
-                        </Badge>
-                        <h3 className="font-display font-semibold text-base">
-                          {celebration.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {celebration.description}
-                        </p>
+            {loadingCelebrations ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-rose" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {upcomingCelebrations.map((celebration) => (
+                  <Card key={celebration.id} variant="interactive">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <Badge
+                            variant="liturgical"
+                            className="mb-2 text-[10px]"
+                          >
+                            {LITURGICAL_RANK_LABELS[celebration.liturgical_rank]}
+                          </Badge>
+                          <h3 className="font-display font-semibold text-base">
+                            {celebration.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {celebration.description}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">
+                            {celebration.date_rule}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">
-                          {celebration.dateRule}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Mobile: Estatísticas */}
@@ -299,7 +339,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                   <Music2 className="w-5 h-5 text-gold" />
                 </div>
                 <p className="text-2xl font-display font-bold text-foreground">
-                  {MOCK_SONGS.length}
+                  {songs?.length || 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Músicas</p>
               </div>
@@ -308,7 +348,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                   <Calendar className="w-5 h-5 text-rose" />
                 </div>
                 <p className="text-2xl font-display font-bold text-foreground">
-                  {MOCK_CELEBRATIONS.length}
+                  {celebrations?.length || 0}
                 </p>
                 <p className="text-xs text-muted-foreground">Celebrações</p>
               </div>
@@ -316,7 +356,7 @@ export function HomeView({ onSelectVoice, onNavigate, onSelectSong }: HomeViewPr
                 <div className="flex items-center justify-center w-10 h-10 mx-auto rounded-full bg-gold/10 mb-2">
                   <Headphones className="w-5 h-5 text-gold" />
                 </div>
-                <p className="text-2xl font-display font-bold text-foreground">24</p>
+                <p className="text-2xl font-display font-bold text-foreground">0</p>
                 <p className="text-xs text-muted-foreground">Áudios</p>
               </div>
             </div>

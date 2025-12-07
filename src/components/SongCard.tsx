@@ -1,23 +1,30 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Music, FileText, Headphones, ChevronRight } from "lucide-react";
-import { Song, VOICE_PARTS } from "@/lib/data";
-import { cn } from "@/lib/utils";
+import { FileText, Headphones, ChevronRight } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Song = Tables<"songs">;
 
 interface SongCardProps {
   song: Song;
   onClick?: () => void;
 }
 
+const VOICING_LABELS: Record<string, string> = {
+  polyphonic: "SATB",
+  gregorian: "Gregoriano",
+  unison: "Uníssono",
+};
+
 export function SongCard({ song, onClick }: SongCardProps) {
-  const availableVoices = VOICE_PARTS.filter(
-    (voice) => song.hasAudio[voice.abbreviation.toLowerCase() as keyof typeof song.hasAudio]
-  );
+  const liturgicalTags = Array.isArray(song.liturgical_tags) 
+    ? song.liturgical_tags as string[]
+    : [];
 
   return (
     <Card
       variant="interactive"
-      className="group"
+      className="group cursor-pointer"
       onClick={onClick}
     >
       <CardContent className="p-4">
@@ -29,15 +36,15 @@ export function SongCard({ song, onClick }: SongCardProps) {
             </h3>
             <p className="text-sm text-muted-foreground mb-3">
               {song.composer}
-              {song.arranger && <span className="text-xs"> • {song.arranger}</span>}
+              {song.arranger && <span className="text-xs"> • Arr. {song.arranger}</span>}
             </p>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-1.5 mb-3">
-              <Badge variant={song.voicingType === "gregorian" ? "gold" : "rose"}>
-                {song.voicingType === "gregorian" ? "Gregoriano" : song.texture}
+              <Badge variant={song.voicing_type === "gregorian" ? "gold" : "rose"}>
+                {VOICING_LABELS[song.voicing_type] || song.texture}
               </Badge>
-              {song.liturgicalTags.slice(0, 2).map((tag) => (
+              {liturgicalTags.slice(0, 2).map((tag) => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag}
                 </Badge>
@@ -46,37 +53,14 @@ export function SongCard({ song, onClick }: SongCardProps) {
 
             {/* Recursos Disponíveis */}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              {song.hasScore && (
-                <div className="flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Partitura</span>
-                </div>
-              )}
-              {song.hasAudio.full && (
-                <div className="flex items-center gap-1">
-                  <Headphones className="w-3.5 h-3.5" />
-                  <span>Áudio</span>
-                </div>
-              )}
-              {availableVoices.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <div className="flex -space-x-1">
-                    {availableVoices.slice(0, 4).map((voice) => (
-                      <span
-                        key={voice.id}
-                        className={cn(
-                          "w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 border-card",
-                          voice.color === "rose"
-                            ? "bg-rose/20 text-rose"
-                            : "bg-gold/20 text-gold-dark"
-                        )}
-                      >
-                        {voice.abbreviation}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5" />
+                <span>Partitura</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Headphones className="w-3.5 h-3.5" />
+                <span>Áudio</span>
+              </div>
             </div>
           </div>
 

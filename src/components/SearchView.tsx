@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { SearchBar } from "@/components/SearchBar";
 import { SongCard } from "@/components/SongCard";
-import { MOCK_SONGS } from "@/lib/data";
+import { useSongs } from "@/hooks/useSongs";
+import { Loader2 } from "lucide-react";
 
 interface SearchViewProps {
   onSelectSong: (songId: string) => void;
@@ -19,22 +20,27 @@ const SUGGESTIONS = [
 
 export function SearchView({ onSelectSong }: SearchViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: songs, isLoading } = useSongs();
 
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
+    if (!searchQuery.trim() || !songs) return [];
 
-    return MOCK_SONGS.filter(
-      (song) =>
-        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.composer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.liturgicalTags.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase())
-        ) ||
-        song.celebrations.some((cel) =>
-          cel.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-    );
-  }, [searchQuery]);
+    const query = searchQuery.toLowerCase();
+
+    return songs.filter((song) => {
+      const liturgicalTags = Array.isArray(song.liturgical_tags) 
+        ? song.liturgical_tags as string[]
+        : [];
+
+      return (
+        song.title.toLowerCase().includes(query) ||
+        (song.composer && song.composer.toLowerCase().includes(query)) ||
+        (song.arranger && song.arranger.toLowerCase().includes(query)) ||
+        liturgicalTags.some((tag) => tag.toLowerCase().includes(query)) ||
+        (song.genre && song.genre.toLowerCase().includes(query))
+      );
+    });
+  }, [searchQuery, songs]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -50,7 +56,11 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
           />
         </div>
 
-        {!searchQuery.trim() ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-gold" />
+          </div>
+        ) : !searchQuery.trim() ? (
           /* Sugestões */
           <div className="space-y-6 lg:space-y-8">
             <div className="space-y-4">
@@ -77,9 +87,9 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
                   { label: "Entrada", icon: "🚪" },
                   { label: "Comunhão", icon: "🍞" },
                   { label: "Ofertório", icon: "🎁" },
-                  { label: "Missa Completa", icon: "⛪" },
-                  { label: "Marianas", icon: "💐" },
-                  { label: "Gregorianas", icon: "📜" },
+                  { label: "Ordinário", icon: "⛪" },
+                  { label: "Mariano", icon: "💐" },
+                  { label: "Gregoriano", icon: "📜" },
                 ].map((cat) => (
                   <button
                     key={cat.label}

@@ -90,7 +90,7 @@ export function AdminSongsTab() {
                 <TableRow>
                   <TableHead>Título</TableHead>
                   <TableHead className="hidden md:table-cell">Compositor</TableHead>
-                  <TableHead className="hidden sm:table-cell">Vozes</TableHead>
+                  <TableHead className="hidden sm:table-cell">Tipo</TableHead>
                   <TableHead className="hidden lg:table-cell">Idioma</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>

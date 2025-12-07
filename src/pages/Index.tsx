@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BottomNav } from "@/components/BottomNav";
+import { AppLayout } from "@/components/AppLayout";
 import { HomeView } from "@/components/HomeView";
 import { LibraryView } from "@/components/LibraryView";
 import { SearchView } from "@/components/SearchView";
@@ -30,26 +30,33 @@ const Index = () => {
     return <SongDetail song={selectedSong} onBack={handleBackFromSong} />;
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {activeTab === "home" && (
-        <HomeView
-          onSelectVoice={setSelectedVoice}
-          onNavigate={setActiveTab}
-          onSelectSong={handleSelectSong}
-        />
-      )}
-      {activeTab === "library" && (
-        <LibraryView onSelectSong={handleSelectSong} />
-      )}
-      {activeTab === "search" && (
-        <SearchView onSelectSong={handleSelectSong} />
-      )}
-      {activeTab === "calendar" && <CelebrationsView />}
-      {activeTab === "profile" && <ProfileView />}
+  const renderContent = () => {
+    switch (activeTab) {
+      case "home":
+        return (
+          <HomeView
+            onSelectVoice={setSelectedVoice}
+            onNavigate={setActiveTab}
+            onSelectSong={handleSelectSong}
+          />
+        );
+      case "library":
+        return <LibraryView onSelectSong={handleSelectSong} />;
+      case "search":
+        return <SearchView onSelectSong={handleSelectSong} />;
+      case "calendar":
+        return <CelebrationsView />;
+      case "profile":
+        return <ProfileView />;
+      default:
+        return null;
+    }
+  };
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-    </div>
+  return (
+    <AppLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderContent()}
+    </AppLayout>
   );
 };
 

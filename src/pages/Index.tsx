@@ -61,6 +61,7 @@ const Index = () => {
             onSelectVoice={setSelectedVoice}
             onNavigate={setActiveTab}
             onSelectSong={handleSelectSong}
+            onSelectCelebration={handleSelectCelebration}
           />
         );
       case "library":

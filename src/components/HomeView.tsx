@@ -17,6 +17,7 @@ interface HomeViewProps {
   onSelectVoice: (voiceId: string) => void;
   onNavigate: (tab: string) => void;
   onSelectSong: (songId: string) => void;
+  onSelectCelebration: (celebrationId: string) => void;
 }
 
 const LITURGICAL_RANK_LABELS: Record<string, string> = {
@@ -26,7 +27,7 @@ const LITURGICAL_RANK_LABELS: Record<string, string> = {
   optional_memorial: "MEMORIAL OPCIONAL",
 };
 
-export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSong }: HomeViewProps) {
+export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSong, onSelectCelebration }: HomeViewProps) {
   const { data: songs, isLoading: loadingSongs } = useSongs();
   const { data: celebrations, isLoading: loadingCelebrations } = useCelebrations();
   const { data: profile } = useProfile();
@@ -163,7 +164,12 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
                 ) : (
                   <div className="space-y-3">
                     {upcomingCelebrations.map((celebration) => (
-                      <Card key={celebration.id} variant="interactive">
+                      <Card 
+                        key={celebration.id} 
+                        variant="interactive" 
+                        className="cursor-pointer"
+                        onClick={() => onSelectCelebration(celebration.id)}
+                      >
                         <CardContent className="p-4">
                           <Badge variant="liturgical" className="mb-2 text-[10px]">
                             {LITURGICAL_RANK_LABELS[celebration.liturgical_rank]}
@@ -242,7 +248,12 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
             ) : (
               <div className="space-y-3">
                 {upcomingCelebrations.map((celebration) => (
-                  <Card key={celebration.id} variant="interactive">
+                  <Card 
+                    key={celebration.id} 
+                    variant="interactive"
+                    className="cursor-pointer"
+                    onClick={() => onSelectCelebration(celebration.id)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div>

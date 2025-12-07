@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface LookupOption {
   id: string;
   name: string;
+  value?: string;
 }
 
 // ===== GENRES =====
@@ -140,6 +141,99 @@ export function useDeleteLanguage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["song-languages"] });
+    },
+  });
+}
+
+// ===== VOICE TYPES =====
+export function useVoiceTypes() {
+  return useQuery({
+    queryKey: ["voice-types"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("voice_types")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data as LookupOption[];
+    },
+  });
+}
+
+export function useCreateVoiceType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase
+        .from("voice_types")
+        .insert({ name })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["voice-types"] });
+    },
+  });
+}
+
+export function useDeleteVoiceType() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("voice_types").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["voice-types"] });
+    },
+  });
+}
+
+// ===== LITURGICAL HIERARCHIES =====
+export function useLiturgicalHierarchies() {
+  return useQuery({
+    queryKey: ["liturgical-hierarchies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("liturgical_hierarchies")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data as LookupOption[];
+    },
+  });
+}
+
+export function useCreateLiturgicalHierarchy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const value = name.toLowerCase().replace(/\s+/g, "_");
+      const { data, error } = await supabase
+        .from("liturgical_hierarchies")
+        .insert({ name, value })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["liturgical-hierarchies"] });
+    },
+  });
+}
+
+export function useDeleteLiturgicalHierarchy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("liturgical_hierarchies").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["liturgical-hierarchies"] });
     },
   });
 }

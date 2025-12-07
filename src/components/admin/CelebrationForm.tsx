@@ -12,20 +12,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useCreateCelebration, useUpdateCelebration, Celebration } from "@/hooks/useAdminData";
+import {
+  useLiturgicalHierarchies,
+  useCreateLiturgicalHierarchy,
+  useDeleteLiturgicalHierarchy,
+} from "@/hooks/useSongOptions";
+import { ManageableSelect } from "./ManageableSelect";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 const celebrationSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  liturgical_rank: z.enum(["solemnity", "feast", "memorial", "optional_memorial"]),
+  liturgical_rank: z.string().min(1, "Hierarquia litúrgica é obrigatória"),
   feast_type: z.string().optional(),
   date_rule: z.string().optional(),
   description: z.string().optional(),
@@ -42,11 +41,21 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
   const createCelebration = useCreateCelebration();
   const updateCelebration = useUpdateCelebration();
 
+  const { data: hierarchies = [], isLoading: loadingHierarchies } = useLiturgicalHierarchies();
+  const createHierarchy = useCreateLiturgicalHierarchy();
+  const deleteHierarchy = useDeleteLiturgicalHierarchy();
+
+  // Map enum value to display name
+  const getHierarchyDisplayName = (value: string) => {
+    const hierarchy = hierarchies.find((h) => h.value === value);
+    return hierarchy?.name || value;
+  };
+
   const form = useForm<CelebrationFormData>({
     resolver: zodResolver(celebrationSchema),
     defaultValues: {
       name: celebration?.name || "",
-      liturgical_rank: celebration?.liturgical_rank || "memorial",
+      liturgical_rank: celebration?.liturgical_rank || "",
       feast_type: celebration?.feast_type || "",
       date_rule: celebration?.date_rule || "",
       description: celebration?.description || "",
@@ -55,13 +64,17 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
 
   const onSubmit = async (data: CelebrationFormData) => {
     try {
+      // Find the hierarchy to get the value
+      const hierarchy = hierarchies.find((h) => h.name === data.liturgical_rank || h.value === data.liturgical_rank);
+      const liturgical_rank = (hierarchy?.value || data.liturgical_rank) as "solemnity" | "feast" | "memorial" | "optional_memorial";
+
       if (celebration) {
-        await updateCelebration.mutateAsync({ id: celebration.id, ...data });
+        await updateCelebration.mutateAsync({ id: celebration.id, ...data, liturgical_rank });
         toast.success("Celebração atualizada com sucesso");
       } else {
         await createCelebration.mutateAsync({
           name: data.name,
-          liturgical_rank: data.liturgical_rank,
+          liturgical_rank,
           feast_type: data.feast_type,
           date_rule: data.date_rule,
           description: data.description,
@@ -99,20 +112,24 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
             name="liturgical_rank"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Rank Litúrgico</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o rank" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="solemnity">Solenidade</SelectItem>
-                    <SelectItem value="feast">Festa</SelectItem>
-                    <SelectItem value="memorial">Memória</SelectItem>
-                    <SelectItem value="optional_memorial">Memória Opcional</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormLabel>Hierarquia Litúrgica</FormLabel>
+                <FormControl>
+                  <ManageableSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione a hierarquia"
+                    options={hierarchies}
+                    isLoading={loadingHierarchies}
+                    onCreate={async (name) => {
+                      await createHierarchy.mutateAsync(name);
+                    }}
+                    onDelete={async (id) => {
+                      await deleteHierarchy.mutateAsync(id);
+                    }}
+                    isCreating={createHierarchy.isPending}
+                    isDeleting={deleteHierarchy.isPending}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

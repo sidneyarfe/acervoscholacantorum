@@ -1,17 +1,20 @@
 import { cn } from "@/lib/utils";
 import { VOICE_PARTS } from "@/lib/data";
+import { Headphones } from "lucide-react";
 
 interface VoicePartSelectorProps {
   selectedVoice: string | null;
   onSelectVoice: (voiceId: string) => void;
+  availableVoices?: string[];
 }
 
-export function VoicePartSelector({ selectedVoice, onSelectVoice }: VoicePartSelectorProps) {
+export function VoicePartSelector({ selectedVoice, onSelectVoice, availableVoices }: VoicePartSelectorProps) {
   return (
     <div className="grid grid-cols-4 gap-3">
       {VOICE_PARTS.map((voice, index) => {
         const isSelected = selectedVoice === voice.id;
         const isHighVoice = voice.abbreviation === "S" || voice.abbreviation === "A";
+        const hasAudio = availableVoices?.includes(voice.id);
         
         return (
           <button
@@ -65,6 +68,18 @@ export function VoicePartSelector({ selectedVoice, onSelectVoice }: VoicePartSel
                 )}
               >
                 ✓
+              </div>
+            )}
+
+            {/* Indicador de áudio disponível */}
+            {availableVoices !== undefined && hasAudio && (
+              <div
+                className={cn(
+                  "absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center",
+                  "bg-emerald-500 text-white"
+                )}
+              >
+                <Headphones className="w-3 h-3" />
               </div>
             )}
           </button>

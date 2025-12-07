@@ -55,6 +55,14 @@ export function SongDetail({ song, onBack, initialVoice }: SongDetailProps) {
     ? song.liturgical_tags as string[]
     : [];
 
+  // Get list of available voice parts that have audio
+  const availableVoices = useMemo(() => {
+    if (!audioTracks?.length) return [];
+    return audioTracks
+      .filter(t => t.voice_part)
+      .map(t => t.voice_part as string);
+  }, [audioTracks]);
+
   // Find the appropriate audio track based on selected voice
   const currentAudioTrack = useMemo(() => {
     if (!audioTracks?.length) return null;
@@ -166,6 +174,7 @@ export function SongDetail({ song, onBack, initialVoice }: SongDetailProps) {
           <VoicePartSelector
             selectedVoice={selectedVoice}
             onSelectVoice={setSelectedVoice}
+            availableVoices={availableVoices}
           />
         </section>
 

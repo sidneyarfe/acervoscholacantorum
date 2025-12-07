@@ -14,16 +14,400 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      artists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          role?: string | null
+        }
+        Relationships: []
+      }
+      audio_tracks: {
+        Row: {
+          approved: boolean | null
+          created_at: string
+          duration_seconds: number | null
+          file_url: string
+          id: string
+          song_id: string
+          uploader_id: string | null
+          version_tag: string | null
+          voice_part: Database["public"]["Enums"]["voice_part"] | null
+        }
+        Insert: {
+          approved?: boolean | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_url: string
+          id?: string
+          song_id: string
+          uploader_id?: string | null
+          version_tag?: string | null
+          voice_part?: Database["public"]["Enums"]["voice_part"] | null
+        }
+        Update: {
+          approved?: boolean | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_url?: string
+          id?: string
+          song_id?: string
+          uploader_id?: string | null
+          version_tag?: string | null
+          voice_part?: Database["public"]["Enums"]["voice_part"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_tracks_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      celebrations: {
+        Row: {
+          created_at: string
+          date_rule: string | null
+          description: string | null
+          feast_type: string | null
+          id: string
+          liturgical_rank: Database["public"]["Enums"]["liturgical_rank"]
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          date_rule?: string | null
+          description?: string | null
+          feast_type?: string | null
+          id?: string
+          liturgical_rank?: Database["public"]["Enums"]["liturgical_rank"]
+          name: string
+        }
+        Update: {
+          created_at?: string
+          date_rule?: string | null
+          description?: string | null
+          feast_type?: string | null
+          id?: string
+          liturgical_rank?: Database["public"]["Enums"]["liturgical_rank"]
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          preferred_voice: Database["public"]["Enums"]["voice_part"] | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rehearsal_list_songs: {
+        Row: {
+          id: string
+          notes: string | null
+          position_order: number
+          rehearsal_list_id: string
+          song_id: string
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          position_order?: number
+          rehearsal_list_id: string
+          song_id: string
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          position_order?: number
+          rehearsal_list_id?: string
+          song_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rehearsal_list_songs_rehearsal_list_id_fkey"
+            columns: ["rehearsal_list_id"]
+            isOneToOne: false
+            referencedRelation: "rehearsal_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rehearsal_list_songs_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rehearsal_lists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      scores: {
+        Row: {
+          approved: boolean | null
+          created_at: string
+          file_url: string
+          id: string
+          key_signature: string | null
+          page_count: number | null
+          song_id: string
+          uploader_id: string | null
+        }
+        Insert: {
+          approved?: boolean | null
+          created_at?: string
+          file_url: string
+          id?: string
+          key_signature?: string | null
+          page_count?: number | null
+          song_id: string
+          uploader_id?: string | null
+        }
+        Update: {
+          approved?: boolean | null
+          created_at?: string
+          file_url?: string
+          id?: string
+          key_signature?: string | null
+          page_count?: number | null
+          song_id?: string
+          uploader_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scores_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      song_artists: {
+        Row: {
+          artist_id: string
+          id: string
+          role: string | null
+          song_id: string
+        }
+        Insert: {
+          artist_id: string
+          id?: string
+          role?: string | null
+          song_id: string
+        }
+        Update: {
+          artist_id?: string
+          id?: string
+          role?: string | null
+          song_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_artists_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "song_artists_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      song_celebration: {
+        Row: {
+          celebration_id: string
+          context_notes: string | null
+          default_order: number | null
+          id: string
+          song_id: string
+          usage_count: number | null
+        }
+        Insert: {
+          celebration_id: string
+          context_notes?: string | null
+          default_order?: number | null
+          id?: string
+          song_id: string
+          usage_count?: number | null
+        }
+        Update: {
+          celebration_id?: string
+          context_notes?: string | null
+          default_order?: number | null
+          id?: string
+          song_id?: string
+          usage_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_celebration_celebration_id_fkey"
+            columns: ["celebration_id"]
+            isOneToOne: false
+            referencedRelation: "celebrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "song_celebration_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      songs: {
+        Row: {
+          arranger: string | null
+          composer: string | null
+          copyright_info: string | null
+          created_at: string
+          created_by: string | null
+          genre: string | null
+          id: string
+          language: string | null
+          liturgical_tags: Json | null
+          texture: string | null
+          title: string
+          updated_at: string
+          voicing_type: Database["public"]["Enums"]["voicing_type"]
+        }
+        Insert: {
+          arranger?: string | null
+          composer?: string | null
+          copyright_info?: string | null
+          created_at?: string
+          created_by?: string | null
+          genre?: string | null
+          id?: string
+          language?: string | null
+          liturgical_tags?: Json | null
+          texture?: string | null
+          title: string
+          updated_at?: string
+          voicing_type?: Database["public"]["Enums"]["voicing_type"]
+        }
+        Update: {
+          arranger?: string | null
+          composer?: string | null
+          copyright_info?: string | null
+          created_at?: string
+          created_by?: string | null
+          genre?: string | null
+          id?: string
+          language?: string | null
+          liturgical_tags?: Json | null
+          texture?: string | null
+          title?: string
+          updated_at?: string
+          voicing_type?: Database["public"]["Enums"]["voicing_type"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "member"
+      liturgical_rank: "solemnity" | "feast" | "memorial" | "optional_memorial"
+      voice_part: "soprano" | "contralto" | "tenor" | "baixo"
+      voicing_type: "unison" | "polyphonic" | "gregorian"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +534,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "member"],
+      liturgical_rank: ["solemnity", "feast", "memorial", "optional_memorial"],
+      voice_part: ["soprano", "contralto", "tenor", "baixo"],
+      voicing_type: ["unison", "polyphonic", "gregorian"],
+    },
   },
 } as const

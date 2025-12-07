@@ -101,8 +101,8 @@ export function AdminCelebrationsTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead className="hidden md:table-cell">Rank Litúrgico</TableHead>
-                  <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+                  <TableHead className="hidden md:table-cell">Hierarquia Litúrgica</TableHead>
+                  <TableHead className="hidden sm:table-cell">Tipo de Celebração</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>

@@ -17,6 +17,9 @@ import {
   useLiturgicalHierarchies,
   useCreateLiturgicalHierarchy,
   useDeleteLiturgicalHierarchy,
+  useCelebrationTypes,
+  useCreateCelebrationType,
+  useDeleteCelebrationType,
 } from "@/hooks/useSongOptions";
 import { ManageableSelect } from "./ManageableSelect";
 import { toast } from "sonner";
@@ -44,6 +47,10 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
   const { data: hierarchies = [], isLoading: loadingHierarchies } = useLiturgicalHierarchies();
   const createHierarchy = useCreateLiturgicalHierarchy();
   const deleteHierarchy = useDeleteLiturgicalHierarchy();
+
+  const { data: celebrationTypes = [], isLoading: loadingTypes } = useCelebrationTypes();
+  const createCelebrationType = useCreateCelebrationType();
+  const deleteCelebrationType = useDeleteCelebrationType();
 
   // Map enum value to display name
   const getHierarchyDisplayName = (value: string) => {
@@ -140,9 +147,23 @@ export function CelebrationForm({ celebration, onClose }: CelebrationFormProps) 
             name="feast_type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tipo de Festa</FormLabel>
+                <FormLabel>Tipo de Celebração</FormLabel>
                 <FormControl>
-                  <Input placeholder="Ex: Mariana, Cristológica" {...field} />
+                  <ManageableSelect
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder="Selecione o tipo"
+                    options={celebrationTypes}
+                    isLoading={loadingTypes}
+                    onCreate={async (name) => {
+                      await createCelebrationType.mutateAsync(name);
+                    }}
+                    onDelete={async (id) => {
+                      await deleteCelebrationType.mutateAsync(id);
+                    }}
+                    isCreating={createCelebrationType.isPending}
+                    isDeleting={deleteCelebrationType.isPending}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -104,7 +104,9 @@ export function AdminSongsTab() {
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge variant="outline" className="capitalize">
-                        {song.voicing_type}
+                        {song.voicing_type === 'polyphonic' ? 'Polifônico' : 
+                         song.voicing_type === 'gregorian' ? 'Gregoriano' : 
+                         song.voicing_type === 'unison' ? 'Uníssono' : song.voicing_type}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground">

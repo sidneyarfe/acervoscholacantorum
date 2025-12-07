@@ -223,6 +223,50 @@ export function useUpdateUserProfile() {
   });
 }
 
+// Create new user (admin only)
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userData: {
+      email: string;
+      password: string;
+      display_name: string;
+      full_name?: string;
+      cpf?: string;
+      phone?: string;
+      address?: string;
+      join_date?: string;
+      has_stole?: boolean;
+      has_vestment?: boolean;
+      preferred_voice?: "soprano" | "contralto" | "tenor" | "baixo" | null;
+      role?: "admin" | "moderator" | "member";
+    }) => {
+      // Use edge function to create user (requires service role)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify(userData),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao criar usuário");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+  });
+}
+
 // ===== AUDIO TRACKS =====
 export function useSongAudioTracks(songId: string | null) {
   return useQuery({

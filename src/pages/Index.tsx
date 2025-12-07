@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { HomeView } from "@/components/HomeView";
 import { LibraryView } from "@/components/LibraryView";
@@ -10,6 +10,7 @@ import { SongDetail } from "@/components/SongDetail";
 import { AdminView } from "@/components/admin/AdminView";
 import { useSong } from "@/hooks/useSongs";
 import { useIsAdmin } from "@/hooks/useUserRole";
+import { useProfile } from "@/hooks/useProfile";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
@@ -17,6 +18,14 @@ const Index = () => {
   const [selectedCelebrationId, setSelectedCelebrationId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const { isAdmin } = useIsAdmin();
+  const { data: profile } = useProfile();
+
+  // Auto-initialize voice from profile preferred_voice
+  useEffect(() => {
+    if (profile?.preferred_voice && !selectedVoice) {
+      setSelectedVoice(profile.preferred_voice);
+    }
+  }, [profile?.preferred_voice]);
 
   const { data: selectedSong } = useSong(selectedSongId);
 

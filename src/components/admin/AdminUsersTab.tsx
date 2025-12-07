@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Loader2, Shield, User, Crown, Pencil, Check, X } from "lucide-react";
+import { Users, Loader2, Shield, User, Crown, Pencil, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,6 +21,7 @@ import {
 import { useAdminUsers, AdminUser } from "@/hooks/useAdminData";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserForm } from "./UserForm";
+import { CreateUserForm } from "./CreateUserForm";
 
 const roleLabels: Record<string, { label: string; icon: typeof User }> = {
   admin: { label: "Administrador", icon: Crown },
@@ -38,6 +39,7 @@ export function AdminUsersTab() {
   const { user: currentUser } = useAuth();
   const { data: users, isLoading } = useAdminUsers();
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   if (isLoading) {
     return (
@@ -50,11 +52,15 @@ export function AdminUsersTab() {
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-gold" />
             Usuários ({users?.length || 0})
           </CardTitle>
+          <Button onClick={() => setIsCreating(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Usuário
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -168,6 +174,15 @@ export function AdminUsersTab() {
               isCurrentUser={editingUser.id === currentUser?.id}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Usuário</DialogTitle>
+          </DialogHeader>
+          <CreateUserForm onClose={() => setIsCreating(false)} />
         </DialogContent>
       </Dialog>
     </>

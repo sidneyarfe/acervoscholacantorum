@@ -57,6 +57,7 @@ const Index = () => {
       case "home":
         return (
           <HomeView
+            selectedVoice={selectedVoice}
             onSelectVoice={setSelectedVoice}
             onNavigate={setActiveTab}
             onSelectSong={handleSelectSong}

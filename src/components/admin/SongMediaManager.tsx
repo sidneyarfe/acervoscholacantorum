@@ -254,18 +254,24 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
             </div>
           ) : scores?.length ? (
             <div className="space-y-2">
-              {scores.map((score, index) => (
-                <div
-                  key={score.id}
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-rose" />
-                    <span className="text-sm">Partitura {index + 1}</span>
-                    {score.key_signature && (
-                      <Badge variant="secondary">{score.key_signature}</Badge>
-                    )}
-                  </div>
+              {scores.map((score) => {
+                // Exibir nome original do arquivo ou extrair do URL
+                const displayName = (score as any).file_name 
+                  || score.file_url.split('/').pop()?.replace(/^score_\d+\.pdf$/, `${song.title}.pdf`) 
+                  || 'Partitura';
+                
+                return (
+                  <div
+                    key={score.id}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-rose" />
+                      <span className="text-sm truncate max-w-[200px]">{displayName}</span>
+                      {score.key_signature && (
+                        <Badge variant="secondary">{score.key_signature}</Badge>
+                      )}
+                    </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="ghost"
@@ -285,7 +291,7 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
                     </Button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">

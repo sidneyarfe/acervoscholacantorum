@@ -39,6 +39,9 @@ export type Database = {
         Row: {
           approved: boolean | null
           created_at: string
+          drive_download_link: string | null
+          drive_file_id: string | null
+          drive_view_link: string | null
           duration_seconds: number | null
           file_url: string
           id: string
@@ -50,6 +53,9 @@ export type Database = {
         Insert: {
           approved?: boolean | null
           created_at?: string
+          drive_download_link?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
           duration_seconds?: number | null
           file_url: string
           id?: string
@@ -61,6 +67,9 @@ export type Database = {
         Update: {
           approved?: boolean | null
           created_at?: string
+          drive_download_link?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
           duration_seconds?: number | null
           file_url?: string
           id?: string
@@ -272,6 +281,9 @@ export type Database = {
         Row: {
           approved: boolean | null
           created_at: string
+          drive_download_link: string | null
+          drive_file_id: string | null
+          drive_view_link: string | null
           file_name: string | null
           file_url: string
           id: string
@@ -283,6 +295,9 @@ export type Database = {
         Insert: {
           approved?: boolean | null
           created_at?: string
+          drive_download_link?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
           file_name?: string | null
           file_url: string
           id?: string
@@ -294,6 +309,9 @@ export type Database = {
         Update: {
           approved?: boolean | null
           created_at?: string
+          drive_download_link?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
           file_name?: string | null
           file_url?: string
           id?: string

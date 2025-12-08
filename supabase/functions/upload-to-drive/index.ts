@@ -161,11 +161,13 @@ serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const songId = formData.get('songId') as string;
-    const type = formData.get('type') as string; // 'audio' or 'score'
+    const type = formData.get('fileType') as string; // 'audio' or 'score'
     const voicePart = formData.get('voicePart') as string | null;
+    const uploaderId = formData.get('uploaderId') as string | null;
+    const originalFileName = formData.get('fileName') as string | null;
 
     if (!file || !songId || !type) {
-      throw new Error('Missing required fields: file, songId, type');
+      throw new Error('Missing required fields: file, songId, fileType');
     }
 
     console.log(`Uploading ${type} for song ${songId}: ${file.name}`);
@@ -177,15 +179,15 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const fileContent = new Uint8Array(arrayBuffer);
     
-    // Generate unique filename
+    // Generate unique filename for Drive
     const timestamp = Date.now();
-    const fileName = `${songId}_${type}_${voicePart || 'full'}_${timestamp}_${file.name}`;
+    const driveFileName = `${songId}_${type}_${voicePart || 'full'}_${timestamp}_${file.name}`;
     
     // Upload to Google Drive
     const driveResult = await uploadToDrive(
       accessToken,
       folderId,
-      fileName,
+      driveFileName,
       fileContent,
       file.type
     );
@@ -204,11 +206,12 @@ serve(async (req) => {
         .from('audio_tracks')
         .insert({
           song_id: songId,
-          voice_part: voicePart || null,
+          voice_part: voicePart && voicePart !== 'tutti' ? voicePart : null,
           file_url: driveResult.webContentLink,
           drive_file_id: driveResult.id,
           drive_view_link: driveResult.webViewLink,
           drive_download_link: driveResult.webContentLink,
+          uploader_id: uploaderId,
           approved: true,
         })
         .select()
@@ -222,10 +225,11 @@ serve(async (req) => {
         .insert({
           song_id: songId,
           file_url: driveResult.webContentLink,
-          file_name: file.name,
+          file_name: originalFileName || file.name,
           drive_file_id: driveResult.id,
           drive_view_link: driveResult.webViewLink,
           drive_download_link: driveResult.webContentLink,
+          uploader_id: uploaderId,
           approved: true,
         })
         .select()

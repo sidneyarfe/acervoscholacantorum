@@ -6,10 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Base64URL encode for JWT
+// Base64URL encode for JWT - handles Uint8Array properly
 function base64UrlEncode(data: Uint8Array | string): string {
-  const str = typeof data === 'string' ? data : new TextDecoder().decode(data);
-  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  let bytes: Uint8Array;
+  if (typeof data === 'string') {
+    bytes = new TextEncoder().encode(data);
+  } else {
+    bytes = data;
+  }
+  // Convert bytes to binary string safely
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Convert Uint8Array to base64 safely (handles large files)
+function arrayBufferToBase64(buffer: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < buffer.length; i += chunkSize) {
+    const chunk = buffer.subarray(i, Math.min(i + chunkSize, buffer.length));
+    for (let j = 0; j < chunk.length; j++) {
+      binary += String.fromCharCode(chunk[j]);
+    }
+  }
+  return btoa(binary);
 }
 
 // Create JWT for Google Service Account
@@ -102,8 +125,8 @@ async function uploadToDrive(
   const metadataPart = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}`;
   const mediaPart = `${delimiter}Content-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n`;
   
-  // Convert file content to base64
-  const base64Content = btoa(String.fromCharCode(...fileContent));
+  // Convert file content to base64 safely (handles large files)
+  const base64Content = arrayBufferToBase64(fileContent);
   
   const body = metadataPart + mediaPart + base64Content + closeDelimiter;
 

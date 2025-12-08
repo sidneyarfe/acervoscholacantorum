@@ -60,9 +60,40 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const scoreInputRef = useRef<HTMLInputElement>(null);
 
+  const ALLOWED_AUDIO_TYPES = [
+    'audio/mpeg',      // MP3
+    'audio/wav',       // WAV
+    'audio/wave',      // WAV
+    'audio/x-wav',     // WAV
+    'audio/flac',      // FLAC
+    'audio/mp4',       // M4A
+    'audio/m4a',       // M4A
+    'audio/x-m4a',     // M4A
+    'audio/ogg',       // OGG
+    'audio/opus',      // OPUS
+    'audio/aac',       // AAC
+    'audio/webm',      // WebM audio
+  ];
+
+  const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
+
   const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+
+    // Validar tipo de arquivo
+    if (!ALLOWED_AUDIO_TYPES.includes(file.type)) {
+      toast.error("Formato não suportado. Use MP3, WAV, FLAC, M4A, OPUS ou OGG.");
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      return;
+    }
+
+    // Validar tamanho
+    if (file.size > MAX_AUDIO_SIZE) {
+      toast.error("Arquivo muito grande. O limite é 100MB.");
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      return;
+    }
 
     try {
       await uploadAudio.mutateAsync({
@@ -156,7 +187,7 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
             <input
               ref={audioInputRef}
               type="file"
-              accept="audio/*"
+              accept=".mp3,.wav,.flac,.m4a,.ogg,.opus,.aac,.webm,audio/mpeg,audio/wav,audio/flac,audio/mp4,audio/ogg,audio/opus,audio/aac,audio/webm"
               onChange={handleAudioUpload}
               className="hidden"
             />
@@ -174,6 +205,9 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
               Enviar Áudio
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Formatos: MP3, WAV, FLAC, M4A, OPUS, OGG (máx. 100MB)
+          </p>
 
           {/* Audio List */}
           {loadingAudio ? (

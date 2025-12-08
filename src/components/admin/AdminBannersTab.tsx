@@ -59,6 +59,7 @@ export function AdminBannersTab() {
     is_active: true,
     display_order: 0,
     drive_file_id: null as string | null,
+    show_text: true,
   });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -78,6 +79,7 @@ export function AdminBannersTab() {
       is_active: banner.is_active,
       display_order: banner.display_order,
       drive_file_id: banner.drive_file_id,
+      show_text: banner.show_text,
     });
     setPreviewImage(banner.image_url);
     setIsFormOpen(true);
@@ -93,6 +95,7 @@ export function AdminBannersTab() {
       is_active: true,
       display_order: (banners?.length || 0) + 1,
       drive_file_id: null,
+      show_text: true,
     });
     setPreviewImage(null);
     setIsFormOpen(true);
@@ -181,6 +184,7 @@ export function AdminBannersTab() {
           is_active: formData.is_active,
           display_order: formData.display_order,
           drive_file_id: formData.drive_file_id,
+          show_text: formData.show_text,
         });
         toast.success("Aviso atualizado com sucesso");
       } else {
@@ -193,6 +197,7 @@ export function AdminBannersTab() {
           display_order: formData.display_order,
           drive_file_id: formData.drive_file_id,
           created_by: user?.id || null,
+          show_text: formData.show_text,
         });
         toast.success("Aviso criado com sucesso");
       }
@@ -452,6 +457,20 @@ export function AdminBannersTab() {
               <p className="text-xs text-muted-foreground">
                 Opcional. Link para abrir ao clicar no banner.
               </p>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="space-y-0.5">
+                <Label htmlFor="show_text" className="cursor-pointer">Exibir título e descrição</Label>
+                <p className="text-xs text-muted-foreground">
+                  Desmarque para mostrar apenas a imagem
+                </p>
+              </div>
+              <Switch
+                id="show_text"
+                checked={formData.show_text}
+                onCheckedChange={(checked) => setFormData((f) => ({ ...f, show_text: checked }))}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

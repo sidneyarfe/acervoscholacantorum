@@ -13,6 +13,7 @@ export interface Banner {
   updated_at: string;
   created_by: string | null;
   drive_file_id: string | null;
+  show_text: boolean;
 }
 
 export function useBanners() {

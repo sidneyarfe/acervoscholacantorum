@@ -62,27 +62,41 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
 
   const ALLOWED_AUDIO_TYPES = [
     'audio/mpeg',      // MP3
+    'audio/x-mpeg',    // MP3 (variante)
     'audio/wav',       // WAV
     'audio/wave',      // WAV
     'audio/x-wav',     // WAV
     'audio/flac',      // FLAC
+    'audio/x-flac',    // FLAC (variante)
     'audio/mp4',       // M4A
     'audio/m4a',       // M4A
-    'audio/x-m4a',     // M4A
+    'audio/x-m4a',     // M4A (variante iOS)
     'audio/ogg',       // OGG
     'audio/opus',      // OPUS
     'audio/aac',       // AAC
+    'audio/x-aac',     // AAC (variante)
     'audio/webm',      // WebM audio
   ];
 
+  const ALLOWED_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.opus', '.aac', '.webm'];
+
   const MAX_AUDIO_SIZE = 100 * 1024 * 1024; // 100MB
+
+  const isValidAudioFile = (file: File): boolean => {
+    // Verifica por MIME type
+    if (ALLOWED_AUDIO_TYPES.includes(file.type)) return true;
+    
+    // Fallback: verifica por extensão (útil para iOS que pode ter MIME types inconsistentes)
+    const fileName = file.name.toLowerCase();
+    return ALLOWED_EXTENSIONS.some(ext => fileName.endsWith(ext));
+  };
 
   const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validar tipo de arquivo
-    if (!ALLOWED_AUDIO_TYPES.includes(file.type)) {
+    // Validar tipo de arquivo (MIME type ou extensão)
+    if (!isValidAudioFile(file)) {
       toast.error("Formato não suportado. Use MP3, WAV, FLAC, M4A, OPUS ou OGG.");
       if (audioInputRef.current) audioInputRef.current.value = "";
       return;
@@ -187,7 +201,7 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
             <input
               ref={audioInputRef}
               type="file"
-              accept=".mp3,.wav,.flac,.m4a,.ogg,.opus,.aac,.webm,audio/mpeg,audio/wav,audio/flac,audio/mp4,audio/ogg,audio/opus,audio/aac,audio/webm"
+              accept="audio/*"
               onChange={handleAudioUpload}
               className="hidden"
             />

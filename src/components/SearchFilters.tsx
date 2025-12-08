@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, Filter } from "lucide-react";
-import { useSongTags, useSongGenres, useSongTextures, useSongLanguages, useVoiceTypes } from "@/hooks/useSongOptions";
+import { useSongTags, useSongTextures, useSongLanguages } from "@/hooks/useSongOptions";
 import { useCelebrations } from "@/hooks/useCelebrations";
 
 export interface SearchFiltersState {
@@ -16,7 +16,7 @@ export interface SearchFiltersState {
   celebration: string | null;
   voiceType: string | null;
   language: string | null;
-  genre: string | null;
+  genre: string | null; // Kept for backward compatibility
   texture: string | null;
 }
 
@@ -26,12 +26,17 @@ interface SearchFiltersProps {
   onClearFilters: () => void;
 }
 
+// Map voicing_type enum to display labels
+const VOICING_TYPES = [
+  { value: "unison", label: "Uníssono" },
+  { value: "polyphonic", label: "Polifônico" },
+  { value: "gregorian", label: "Gregoriano" },
+];
+
 export function SearchFilters({ filters, onFiltersChange, onClearFilters }: SearchFiltersProps) {
   const { data: tags = [] } = useSongTags();
   const { data: celebrations = [] } = useCelebrations();
-  const { data: voiceTypes = [] } = useVoiceTypes();
   const { data: languages = [] } = useSongLanguages();
-  const { data: genres = [] } = useSongGenres();
   const { data: textures = [] } = useSongTextures();
 
   const hasActiveFilters = Object.values(filters).some(v => v !== null);
@@ -41,15 +46,14 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
   };
 
   const activeFilterLabels: { key: keyof SearchFiltersState; label: string }[] = [];
-  if (filters.tag) activeFilterLabels.push({ key: "tag", label: `Tag: ${filters.tag}` });
+  if (filters.tag) activeFilterLabels.push({ key: "tag", label: filters.tag });
   if (filters.celebration) {
     const cel = celebrations.find(c => c.id === filters.celebration);
-    activeFilterLabels.push({ key: "celebration", label: `Celebração: ${cel?.name || ""}` });
+    if (cel) activeFilterLabels.push({ key: "celebration", label: cel.name });
   }
-  if (filters.voiceType) activeFilterLabels.push({ key: "voiceType", label: `Tipo: ${filters.voiceType}` });
-  if (filters.language) activeFilterLabels.push({ key: "language", label: `Idioma: ${filters.language}` });
-  if (filters.genre) activeFilterLabels.push({ key: "genre", label: `Gênero: ${filters.genre}` });
-  if (filters.texture) activeFilterLabels.push({ key: "texture", label: `Textura: ${filters.texture}` });
+  if (filters.voiceType) activeFilterLabels.push({ key: "voiceType", label: filters.voiceType });
+  if (filters.language) activeFilterLabels.push({ key: "language", label: filters.language });
+  if (filters.texture) activeFilterLabels.push({ key: "texture", label: filters.texture });
 
   return (
     <div className="space-y-4">
@@ -68,16 +72,16 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
         <Select 
           value={filters.tag || "all"} 
           onValueChange={(v) => updateFilter("tag", v)}
         >
           <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Tag" />
+            <SelectValue placeholder="Momento / Tema" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as Tags</SelectItem>
+            <SelectItem value="all">Momento / Tema</SelectItem>
             {tags.map(t => (
               <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
             ))}
@@ -92,7 +96,7 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
             <SelectValue placeholder="Celebração" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas Celebrações</SelectItem>
+            <SelectItem value="all">Celebração</SelectItem>
             {celebrations.map(c => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
@@ -104,12 +108,12 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
           onValueChange={(v) => updateFilter("voiceType", v)}
         >
           <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Tipo de Voz" />
+            <SelectValue placeholder="Estilo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os Tipos</SelectItem>
-            {voiceTypes.map(v => (
-              <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+            <SelectItem value="all">Estilo</SelectItem>
+            {VOICING_TYPES.map(v => (
+              <SelectItem key={v.value} value={v.label}>{v.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -122,24 +126,9 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
             <SelectValue placeholder="Idioma" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos Idiomas</SelectItem>
+            <SelectItem value="all">Idioma</SelectItem>
             {languages.map(l => (
               <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select 
-          value={filters.genre || "all"} 
-          onValueChange={(v) => updateFilter("genre", v)}
-        >
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Gênero" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos Gêneros</SelectItem>
-            {genres.map(g => (
-              <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -152,7 +141,7 @@ export function SearchFilters({ filters, onFiltersChange, onClearFilters }: Sear
             <SelectValue placeholder="Textura" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas Texturas</SelectItem>
+            <SelectItem value="all">Textura</SelectItem>
             {textures.map(t => (
               <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
             ))}

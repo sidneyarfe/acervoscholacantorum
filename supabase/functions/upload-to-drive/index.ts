@@ -75,8 +75,22 @@ serve(async (req) => {
     const { access_token } = await tokenResponse.json();
 
     // 3. Prepara o Upload Multipart (diretamente na pasta da música)
-    const timestamp = Date.now();
-    const driveFileName = `${type}_${voicePart || 'full'}_${timestamp}_${file.name}`;
+    const songLabel = `${song.title}${song.composer ? ' - ' + song.composer : ''}`;
+    const fileExtension = file.name.split('.').pop() || '';
+    
+    let driveFileName: string;
+    if (type === 'audio') {
+      const voiceLabels: Record<string, string> = {
+        soprano: 'Soprano',
+        contralto: 'Contralto',
+        tenor: 'Tenor',
+        baixo: 'Baixo',
+      };
+      const naipeLabel = voicePart && voiceLabels[voicePart] ? voiceLabels[voicePart] : 'Tutti';
+      driveFileName = `Áudio - ${naipeLabel} - [${songLabel}].${fileExtension}`;
+    } else {
+      driveFileName = `Partitura - [${songLabel}].${fileExtension}`;
+    }
     
     const metadata = {
       name: driveFileName,

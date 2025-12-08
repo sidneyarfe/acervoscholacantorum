@@ -299,30 +299,32 @@ export function useUploadAudio() {
       voicePart: "soprano" | "contralto" | "tenor" | "baixo" | null;
       uploaderId: string;
     }) => {
-      const fileName = `${songId}/${voicePart || "tutti"}_${Date.now()}.${file.name.split(".").pop()}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("audio-tracks")
-        .upload(fileName, file);
-      if (uploadError) throw uploadError;
+      // Upload para Google Drive via Edge Function
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("songId", songId);
+      formData.append("voicePart", voicePart || "tutti");
+      formData.append("uploaderId", uploaderId);
+      formData.append("fileType", "audio");
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("audio-tracks")
-        .getPublicUrl(fileName);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-drive`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: formData,
+        }
+      );
 
-      const { data, error } = await supabase
-        .from("audio_tracks")
-        .insert({
-          song_id: songId,
-          voice_part: voicePart,
-          file_url: publicUrl,
-          uploader_id: uploaderId,
-          approved: true,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao fazer upload");
+      }
+
+      const result = await response.json();
+      return result;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["audio-tracks", variables.songId] });
@@ -334,6 +336,32 @@ export function useDeleteAudio() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, songId }: { id: string; songId: string }) => {
+      // Buscar drive_file_id antes de deletar
+      const { data: track } = await supabase
+        .from("audio_tracks")
+        .select("drive_file_id")
+        .eq("id", id)
+        .single();
+
+      // Deletar do Google Drive se tiver drive_file_id
+      if (track?.drive_file_id) {
+        try {
+          await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-from-drive`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              },
+              body: JSON.stringify({ driveFileId: track.drive_file_id }),
+            }
+          );
+        } catch (e) {
+          console.error("Erro ao deletar do Drive:", e);
+        }
+      }
+
       const { error } = await supabase.from("audio_tracks").delete().eq("id", id);
       if (error) throw error;
       return songId;
@@ -374,30 +402,32 @@ export function useUploadScore() {
       songId: string;
       uploaderId: string;
     }) => {
-      const fileName = `${songId}/score_${Date.now()}.pdf`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("scores")
-        .upload(fileName, file);
-      if (uploadError) throw uploadError;
+      // Upload para Google Drive via Edge Function
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("songId", songId);
+      formData.append("uploaderId", uploaderId);
+      formData.append("fileType", "score");
+      formData.append("fileName", file.name);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("scores")
-        .getPublicUrl(fileName);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-to-drive`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: formData,
+        }
+      );
 
-      const { data, error } = await supabase
-        .from("scores")
-        .insert({
-          song_id: songId,
-          file_url: publicUrl,
-          file_name: file.name, // Armazenar nome original do arquivo
-          uploader_id: uploaderId,
-          approved: true,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao fazer upload");
+      }
+
+      const result = await response.json();
+      return result;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["scores", variables.songId] });
@@ -409,6 +439,32 @@ export function useDeleteScore() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, songId }: { id: string; songId: string }) => {
+      // Buscar drive_file_id antes de deletar
+      const { data: score } = await supabase
+        .from("scores")
+        .select("drive_file_id")
+        .eq("id", id)
+        .single();
+
+      // Deletar do Google Drive se tiver drive_file_id
+      if (score?.drive_file_id) {
+        try {
+          await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-from-drive`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              },
+              body: JSON.stringify({ driveFileId: score.drive_file_id }),
+            }
+          );
+        } catch (e) {
+          console.error("Erro ao deletar do Drive:", e);
+        }
+      }
+
       const { error } = await supabase.from("scores").delete().eq("id", id);
       if (error) throw error;
       return songId;

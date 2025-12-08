@@ -1,1 +1,10 @@
 project_id = "miisgijrhzrjxojogtdk"
+
+[functions.create-user]
+verify_jwt = true
+
+[functions.upload-to-drive]
+verify_jwt = true
+
+[functions.delete-from-drive]
+verify_jwt = true

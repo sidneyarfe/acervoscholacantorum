@@ -30,7 +30,7 @@ export function BannerCarousel() {
   }
 
   const currentBanner = banners[currentIndex];
-  const hasTextContent = currentBanner.title || currentBanner.description;
+  const hasTextContent = currentBanner.show_text && (currentBanner.title || currentBanner.description);
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);

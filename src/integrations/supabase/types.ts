@@ -99,6 +99,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           link_url: string | null
+          show_text: boolean
           title: string
           updated_at: string
         }
@@ -112,6 +113,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           link_url?: string | null
+          show_text?: boolean
           title: string
           updated_at?: string
         }
@@ -125,6 +127,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           link_url?: string | null
+          show_text?: boolean
           title?: string
           updated_at?: string
         }

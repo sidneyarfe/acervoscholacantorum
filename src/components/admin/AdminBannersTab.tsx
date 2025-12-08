@@ -64,10 +64,11 @@ export function AdminBannersTab() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const filteredBanners = banners?.filter((banner) =>
-    banner.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    banner.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBanners = banners?.filter((banner) => {
+    if (!searchQuery.trim()) return true;
+    return banner.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      banner.description?.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleEdit = (banner: Banner) => {
     setEditingBanner(banner);

@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.delete-from-drive]
 verify_jwt = true
+
+[functions.stream-drive-audio]
+verify_jwt = false

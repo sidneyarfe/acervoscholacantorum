@@ -6,6 +6,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function getOrCreateSubfolder(
+  accessToken: string,
+  parentFolderId: string,
+  folderName: string
+): Promise<string> {
+  // Search for existing folder
+  const searchQuery = `name='${folderName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(searchQuery)}&fields=files(id,name)`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (searchRes.ok) {
+    const searchData = await searchRes.json();
+    if (searchData.files && searchData.files.length > 0) {
+      console.log(`Pasta "${folderName}" encontrada: ${searchData.files[0].id}`);
+      return searchData.files[0].id;
+    }
+  }
+
+  // Create folder if not found
+  console.log(`Criando pasta "${folderName}"...`);
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parentFolderId],
+    }),
+  });
+
+  if (!createRes.ok) {
+    const errorText = await createRes.text();
+    console.error(`Erro ao criar pasta "${folderName}":`, errorText);
+    throw new Error(`Failed to create folder: ${folderName}`);
+  }
+
+  const folderData = await createRes.json();
+  console.log(`Pasta "${folderName}" criada: ${folderData.id}`);
+  return folderData.id;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -21,13 +69,13 @@ serve(async (req) => {
     const originalFileName = formData.get('fileName') as string | null;
     
     // Recupera as credenciais das variáveis de ambiente
-    const folderId = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID')
+    const rootFolderId = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID')
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
     const refreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN')
 
-    if (!file || !folderId || !clientId || !clientSecret || !refreshToken) {
-      console.error("Faltando credenciais:", { folderId: !!folderId, clientId: !!clientId, clientSecret: !!clientSecret, refreshToken: !!refreshToken })
+    if (!file || !rootFolderId || !clientId || !clientSecret || !refreshToken) {
+      console.error("Faltando credenciais:", { rootFolderId: !!rootFolderId, clientId: !!clientId, clientSecret: !!clientSecret, refreshToken: !!refreshToken })
       throw new Error('Configuração de credenciais incompleta no Supabase Secrets.')
     }
 
@@ -57,14 +105,18 @@ serve(async (req) => {
 
     const { access_token } = await tokenResponse.json();
 
-    // 2. Prepara o Upload Multipart
+    // 2. Determina a subpasta correta
+    const subfolderName = type === 'audio' ? 'Musicas' : 'Partituras';
+    const targetFolderId = await getOrCreateSubfolder(access_token, rootFolderId, subfolderName);
+
+    // 3. Prepara o Upload Multipart
     const timestamp = Date.now();
     const driveFileName = `${songId}_${type}_${voicePart || 'full'}_${timestamp}_${file.name}`;
     
     const metadata = {
       name: driveFileName,
       mimeType: file.type,
-      parents: [folderId],
+      parents: [targetFolderId],
     };
 
     const boundary = '-------314159265358979323846';
@@ -81,7 +133,7 @@ serve(async (req) => {
       closeDelimiter,
     ]);
 
-    // 3. Envia o arquivo para o Google Drive
+    // 4. Envia o arquivo para o Google Drive
     const uploadRes = await fetch(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink',
       {
@@ -103,7 +155,7 @@ serve(async (req) => {
     const driveData = await uploadRes.json();
     console.log('Upload concluído:', driveData.id);
 
-    // 4. Tenta deixar o arquivo público para leitura
+    // 5. Tenta deixar o arquivo público para leitura
     try {
       await fetch(`https://www.googleapis.com/drive/v3/files/${driveData.id}/permissions`, {
         method: 'POST',
@@ -117,11 +169,12 @@ serve(async (req) => {
       console.warn("Não foi possível definir permissão pública:", e);
     }
 
-    const webContentLink = driveData.webContentLink || `https://drive.google.com/uc?export=download&id=${driveData.id}`;
     const webViewLink = driveData.webViewLink || `https://drive.google.com/file/d/${driveData.id}/view`;
-
-    // 5. Salva no banco de dados
+    // URL de streaming via proxy (resolve CORS)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const streamUrl = `${supabaseUrl}/functions/v1/stream-drive-audio?fileId=${driveData.id}`;
+
+    // 6. Salva no banco de dados
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -133,10 +186,10 @@ serve(async (req) => {
         .insert({
           song_id: songId,
           voice_part: voicePart && voicePart !== 'tutti' ? voicePart : null,
-          file_url: webContentLink,
+          file_url: streamUrl, // URL do proxy para streaming
           drive_file_id: driveData.id,
           drive_view_link: webViewLink,
-          drive_download_link: webContentLink,
+          drive_download_link: `https://drive.google.com/uc?export=download&id=${driveData.id}`,
           uploader_id: uploaderId,
           approved: true,
         })
@@ -150,11 +203,11 @@ serve(async (req) => {
         .from('scores')
         .insert({
           song_id: songId,
-          file_url: webContentLink,
+          file_url: webViewLink, // Para PDFs, usar webViewLink que abre no visualizador do Drive
           file_name: originalFileName || file.name,
           drive_file_id: driveData.id,
           drive_view_link: webViewLink,
-          drive_download_link: webContentLink,
+          drive_download_link: `https://drive.google.com/uc?export=download&id=${driveData.id}`,
           uploader_id: uploaderId,
           approved: true,
         })
@@ -170,7 +223,7 @@ serve(async (req) => {
         success: true,
         driveFileId: driveData.id,
         viewLink: webViewLink,
-        downloadLink: webContentLink,
+        downloadLink: streamUrl,
         record: dbResult,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

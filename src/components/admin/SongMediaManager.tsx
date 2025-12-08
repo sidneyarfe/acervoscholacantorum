@@ -201,7 +201,6 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
             <input
               ref={audioInputRef}
               type="file"
-              accept="audio/*"
               onChange={handleAudioUpload}
               className="hidden"
             />

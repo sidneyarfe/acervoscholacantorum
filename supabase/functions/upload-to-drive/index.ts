@@ -12,6 +12,37 @@ serve(async (req) => {
   }
 
   try {
+    // === JWT AUTHENTICATION ===
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Token de autenticação ausente' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Verify JWT using anon key client
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Erro de autenticação:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Token inválido ou expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Upload autorizado para usuário: ${user.id}`);
+    // === END JWT AUTHENTICATION ===
+
     const formData = await req.formData()
     const file = formData.get('file') as File
     const songId = formData.get('songId') as string;
@@ -35,10 +66,8 @@ serve(async (req) => {
 
     console.log(`Iniciando upload de: ${file.name} (${file.type}) para música ${songId}`)
 
-    // 1. Buscar a pasta da música no banco
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Use service role client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: song, error: songError } = await supabase
       .from('songs')
@@ -165,7 +194,7 @@ serve(async (req) => {
           drive_file_id: driveData.id,
           drive_view_link: webViewLink,
           drive_download_link: `https://drive.google.com/uc?export=download&id=${driveData.id}`,
-          uploader_id: uploaderId,
+          uploader_id: uploaderId || user.id, // Use authenticated user if not provided
           approved: true,
         })
         .select()
@@ -183,7 +212,7 @@ serve(async (req) => {
           drive_file_id: driveData.id,
           drive_view_link: webViewLink,
           drive_download_link: `https://drive.google.com/uc?export=download&id=${driveData.id}`,
-          uploader_id: uploaderId,
+          uploader_id: uploaderId || user.id, // Use authenticated user if not provided
           approved: true,
         })
         .select()

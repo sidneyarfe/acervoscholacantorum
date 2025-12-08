@@ -12,6 +12,54 @@ serve(async (req) => {
   }
 
   try {
+    // === JWT AUTHENTICATION (Admin only) ===
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Token de autenticação ausente' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Verify JWT using anon key client
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Erro de autenticação:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Token inválido ou expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use service role for admin check and database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user has admin role
+    const { data: hasAdminRole } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (!hasAdminRole) {
+      console.error(`Usuário ${user.id} tentou criar pasta de música sem permissão de admin`);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Apenas administradores podem criar músicas' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Criação de pasta autorizada para admin: ${user.id}`);
+    // === END JWT AUTHENTICATION ===
+
     const { songId, title, composer } = await req.json();
 
     if (!songId || !title) {
@@ -75,10 +123,6 @@ serve(async (req) => {
     console.log(`Pasta criada com ID: ${folderData.id}`);
 
     // 3. Salva o drive_folder_id na música
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     const { error: updateError } = await supabase
       .from('songs')
       .update({ drive_folder_id: folderData.id })

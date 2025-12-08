@@ -14,6 +14,54 @@ serve(async (req) => {
   }
 
   try {
+    // === JWT AUTHENTICATION (Admin only) ===
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Token de autenticação ausente' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Verify JWT using anon key client
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('Erro de autenticação:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Token inválido ou expirado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use service role for admin check and database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify user has admin role
+    const { data: hasAdminRole } = await supabase.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
+
+    if (!hasAdminRole) {
+      console.error(`Usuário ${user.id} tentou upload de banner sem permissão de admin`);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado: Apenas administradores podem fazer upload de banners' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Upload de banner autorizado para admin: ${user.id}`);
+    // === END JWT AUTHENTICATION ===
+
     const formData = await req.formData()
     const file = formData.get('file') as File
     const bannerId = formData.get('bannerId') as string | null;
@@ -29,10 +77,6 @@ serve(async (req) => {
     }
 
     console.log(`Iniciando upload de banner: ${file.name} (${file.type})`)
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // 1. Get fresh access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

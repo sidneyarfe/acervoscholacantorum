@@ -2,22 +2,25 @@ import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { SearchBar } from "@/components/SearchBar";
 import { SongCard } from "@/components/SongCard";
-import { SearchFilters, SearchFiltersState } from "@/components/SearchFilters";
+import { SearchFiltersSheet } from "@/components/SearchFiltersSheet";
+import { SearchFiltersState } from "@/components/SearchFilters";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrationSongs } from "@/hooks/useSongCelebrations";
+import { useCelebrations } from "@/hooks/useCelebrations";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SearchViewProps {
   onSelectSong: (songId: string) => void;
 }
 
-const SUGGESTIONS = [
-  "Panis Angelicus",
-  "Ave Maria",
-  "Kyrie",
-  "Corpus Christi",
-  "Natal",
-  "Gregoriano",
+const CATEGORIES = [
+  { label: "Entrada", icon: "🚪", tag: "Entrada" },
+  { label: "Comunhão", icon: "🍞", tag: "Comunhão" },
+  { label: "Ofertório", icon: "🎁", tag: "Ofertório" },
+  { label: "Ordinário", icon: "⛪", tag: "Ordinário" },
+  { label: "Mariano", icon: "💐", tag: "Mariano" },
+  { label: "Gregoriano", icon: "📜", tag: "Gregoriano" },
 ];
 
 const VOICING_TYPE_MAP: Record<string, string> = {
@@ -38,7 +41,9 @@ const emptyFilters: SearchFiltersState = {
 export function SearchView({ onSelectSong }: SearchViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<SearchFiltersState>(emptyFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const { data: songs, isLoading } = useSongs();
+  const { data: celebrations = [] } = useCelebrations();
   
   // Get songs for selected celebration filter
   const { data: celebrationSongs } = useCelebrationSongs(filters.celebration);
@@ -48,6 +53,40 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
   );
 
   const hasActiveFilters = Object.values(filters).some(v => v !== null);
+
+  // Build active filter labels for SearchBar badges
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+    if (filters.tag) labels.push(filters.tag);
+    if (filters.celebration) {
+      const cel = celebrations.find(c => c.id === filters.celebration);
+      if (cel) labels.push(cel.name);
+    }
+    if (filters.voiceType) labels.push(filters.voiceType);
+    if (filters.language) labels.push(filters.language);
+    if (filters.genre) labels.push(filters.genre);
+    if (filters.texture) labels.push(filters.texture);
+    return labels;
+  }, [filters, celebrations]);
+
+  const handleRemoveFilter = (label: string) => {
+    const newFilters = { ...filters };
+    if (filters.tag === label) newFilters.tag = null;
+    if (celebrations.find(c => c.id === filters.celebration)?.name === label) newFilters.celebration = null;
+    if (filters.voiceType === label) newFilters.voiceType = null;
+    if (filters.language === label) newFilters.language = null;
+    if (filters.genre === label) newFilters.genre = null;
+    if (filters.texture === label) newFilters.texture = null;
+    setFilters(newFilters);
+  };
+
+  const handleCategoryClick = (tag: string) => {
+    if (filters.tag === tag) {
+      setFilters({ ...filters, tag: null });
+    } else {
+      setFilters({ ...filters, tag });
+    }
+  };
 
   const searchResults = useMemo(() => {
     if (!songs) return [];
@@ -111,71 +150,47 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
       <Header title="Buscar" showLogo={false} />
 
       <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-6">
+        {/* Search Bar with Filter Button */}
         <div className="lg:max-w-2xl">
           <SearchBar
             value={searchQuery}
             onChange={setSearchQuery}
             onClear={() => setSearchQuery("")}
-            placeholder="Buscar por título, compositor, celebração..."
+            placeholder="Buscar por título, compositor..."
+            filters={activeFilterLabels}
+            onRemoveFilter={handleRemoveFilter}
+            onOpenFilters={() => setFiltersOpen(true)}
           />
         </div>
-
-        {/* Filters */}
-        <SearchFilters 
-          filters={filters}
-          onFiltersChange={setFilters}
-          onClearFilters={() => setFilters(emptyFilters)}
-        />
 
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gold" />
           </div>
         ) : !showResults ? (
-          /* Sugestões */
-          <div className="space-y-6 lg:space-y-8">
-            <div className="space-y-4">
-              <h2 className="font-display text-lg lg:text-xl font-semibold">Sugestões</h2>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTIONS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => setSearchQuery(suggestion)}
-                    className="px-4 py-2 rounded-full bg-muted text-sm text-muted-foreground hover:bg-gold/10 hover:text-gold transition-colors"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="font-display text-lg lg:text-xl font-semibold mb-4">
-                Buscar por Categoria
-              </h2>
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {[
-                  { label: "Entrada", icon: "🚪" },
-                  { label: "Comunhão", icon: "🍞" },
-                  { label: "Ofertório", icon: "🎁" },
-                  { label: "Ordinário", icon: "⛪" },
-                  { label: "Mariano", icon: "💐" },
-                  { label: "Gregoriano", icon: "📜" },
-                ].map((cat) => (
-                  <button
-                    key={cat.label}
-                    onClick={() => setSearchQuery(cat.label)}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-gold hover:bg-gold/5 transition-all"
-                  >
-                    <span className="text-2xl">{cat.icon}</span>
-                    <span className="font-medium text-sm">{cat.label}</span>
-                  </button>
-                ))}
-              </div>
+          /* Categories - shown when no search/filters active */
+          <div className="space-y-4">
+            <h2 className="font-display text-lg lg:text-xl font-semibold">Buscar por Categoria</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.label}
+                  onClick={() => handleCategoryClick(cat.tag)}
+                  className={cn(
+                    "flex items-center gap-3 p-4 rounded-xl bg-card border transition-all",
+                    filters.tag === cat.tag
+                      ? "border-gold bg-gold/10 ring-1 ring-gold/30"
+                      : "border-border hover:border-gold hover:bg-gold/5"
+                  )}
+                >
+                  <span className="text-2xl">{cat.icon}</span>
+                  <span className="font-medium text-sm">{cat.label}</span>
+                </button>
+              ))}
             </div>
           </div>
         ) : (
-          /* Resultados da Busca */
+          /* Search Results */
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               {searchResults.length} resultado
@@ -208,6 +223,15 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
           </div>
         )}
       </main>
+
+      {/* Filters Sheet */}
+      <SearchFiltersSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onClearFilters={() => setFilters(emptyFilters)}
+      />
     </div>
   );
 }

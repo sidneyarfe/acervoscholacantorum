@@ -27,10 +27,14 @@ async function createJWT(email: string, privateKey: string): Promise<string> {
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
   const unsignedToken = `${encodedHeader}.${encodedPayload}`;
 
+  // Handle both actual newlines and escaped \n strings from JSON
   const pemContents = privateKey
-    .replace(/-----BEGIN PRIVATE KEY-----/, '')
-    .replace(/-----END PRIVATE KEY-----/, '')
-    .replace(/\n/g, '');
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\\n/g, '')  // Handle escaped \n from JSON
+    .replace(/\n/g, '')   // Handle actual newlines
+    .replace(/\r/g, '')   // Handle carriage returns
+    .replace(/\s/g, '');  // Remove any whitespace
   
   const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
   

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useSongTags, useSongGenres, useSongTextures, useSongLanguages, useVoiceTypes } from "@/hooks/useSongOptions";
+import { useSongTags, useSongTextures, useSongLanguages } from "@/hooks/useSongOptions";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { SearchFiltersState } from "@/components/SearchFilters";
 
@@ -26,6 +26,13 @@ interface SearchFiltersSheetProps {
   onClearFilters: () => void;
 }
 
+// Map voicing_type enum to display labels
+const VOICING_TYPES = [
+  { value: "unison", label: "Uníssono" },
+  { value: "polyphonic", label: "Polifônico" },
+  { value: "gregorian", label: "Gregoriano" },
+];
+
 export function SearchFiltersSheet({ 
   open, 
   onOpenChange, 
@@ -35,9 +42,7 @@ export function SearchFiltersSheet({
 }: SearchFiltersSheetProps) {
   const { data: tags = [] } = useSongTags();
   const { data: celebrations = [] } = useCelebrations();
-  const { data: voiceTypes = [] } = useVoiceTypes();
   const { data: languages = [] } = useSongLanguages();
-  const { data: genres = [] } = useSongGenres();
   const { data: textures = [] } = useSongTextures();
 
   const hasActiveFilters = Object.values(filters).some(v => v !== null);
@@ -56,15 +61,15 @@ export function SearchFiltersSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+      <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl">
         <SheetHeader className="pb-4">
           <SheetTitle className="font-display">Filtros de Busca</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-5 overflow-y-auto flex-1 pb-20">
-          {/* Tag */}
+          {/* Tag / Momento Litúrgico */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Momento Litúrgico</Label>
+            <Label className="text-sm font-medium">Momento / Tema</Label>
             <Select 
               value={filters.tag || "all"} 
               onValueChange={(v) => updateFilter("tag", v)}
@@ -73,7 +78,7 @@ export function SearchFiltersSheet({
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {tags.map(t => (
                   <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
                 ))}
@@ -100,9 +105,9 @@ export function SearchFiltersSheet({
             </Select>
           </div>
 
-          {/* Voice Type */}
+          {/* Estilo (voicing_type - replaces voice_types table) */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Tipo de Canto</Label>
+            <Label className="text-sm font-medium">Estilo</Label>
             <Select 
               value={filters.voiceType || "all"} 
               onValueChange={(v) => updateFilter("voiceType", v)}
@@ -112,8 +117,8 @@ export function SearchFiltersSheet({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                {voiceTypes.map(v => (
-                  <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                {VOICING_TYPES.map(v => (
+                  <SelectItem key={v.value} value={v.label}>{v.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -133,25 +138,6 @@ export function SearchFiltersSheet({
                 <SelectItem value="all">Todos</SelectItem>
                 {languages.map(l => (
                   <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Genre */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Gênero</Label>
-            <Select 
-              value={filters.genre || "all"} 
-              onValueChange={(v) => updateFilter("genre", v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {genres.map(g => (
-                  <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

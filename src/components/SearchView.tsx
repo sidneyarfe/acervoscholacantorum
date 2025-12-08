@@ -7,6 +7,7 @@ import { SearchFiltersState } from "@/components/SearchFilters";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrationSongs } from "@/hooks/useSongCelebrations";
 import { useCelebrations } from "@/hooks/useCelebrations";
+import { useSongTags } from "@/hooks/useSongOptions";
 import { Loader2, ArrowLeft, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,32 @@ interface SearchViewProps {
   onSelectSong: (songId: string) => void;
 }
 
-const CATEGORIES = [
-  { label: "Entrada", icon: "🚪", tag: "Entrada", gradient: "from-amber-500/20 to-orange-600/20" },
-  { label: "Comunhão", icon: "🍞", tag: "Comunhão", gradient: "from-rose-500/20 to-pink-600/20" },
-  { label: "Ofertório", icon: "🎁", tag: "Ofertório", gradient: "from-emerald-500/20 to-teal-600/20" },
-  { label: "Ordinário", icon: "⛪", tag: "Ordinário", gradient: "from-blue-500/20 to-indigo-600/20" },
-  { label: "Mariano", icon: "💐", tag: "Mariano", gradient: "from-violet-500/20 to-purple-600/20" },
-  { label: "Gregoriano", icon: "📜", tag: "Gregoriano", gradient: "from-stone-500/20 to-zinc-600/20" },
-];
+// Helper function to get icon and gradient for a tag
+const getTagStyle = (tagName: string): { icon: string; gradient: string } => {
+  const lowerTag = tagName.toLowerCase();
+  
+  // Momentos litúrgicos
+  if (lowerTag.includes("entrada")) return { icon: "🚪", gradient: "from-amber-500/20 to-orange-600/20" };
+  if (lowerTag.includes("comunhão") || lowerTag.includes("comunh")) return { icon: "🍞", gradient: "from-rose-500/20 to-pink-600/20" };
+  if (lowerTag.includes("ofertório") || lowerTag.includes("ofert")) return { icon: "🎁", gradient: "from-emerald-500/20 to-teal-600/20" };
+  if (lowerTag.includes("ordinário") || lowerTag.includes("ordin")) return { icon: "⛪", gradient: "from-blue-500/20 to-indigo-600/20" };
+  if (lowerTag.includes("saída") || lowerTag.includes("final")) return { icon: "🌅", gradient: "from-orange-500/20 to-red-600/20" };
+  
+  // Temas
+  if (lowerTag.includes("marian") || lowerTag.includes("nossa senhora")) return { icon: "💐", gradient: "from-violet-500/20 to-purple-600/20" };
+  if (lowerTag.includes("natal")) return { icon: "🎄", gradient: "from-green-500/20 to-emerald-600/20" };
+  if (lowerTag.includes("páscoa") || lowerTag.includes("pascoa")) return { icon: "✝️", gradient: "from-yellow-500/20 to-amber-600/20" };
+  if (lowerTag.includes("advento")) return { icon: "🕯️", gradient: "from-purple-500/20 to-violet-600/20" };
+  if (lowerTag.includes("quaresma")) return { icon: "🙏", gradient: "from-slate-500/20 to-gray-600/20" };
+  if (lowerTag.includes("pentecostes")) return { icon: "🔥", gradient: "from-red-500/20 to-orange-600/20" };
+  
+  // Estilos musicais
+  if (lowerTag.includes("gregorian")) return { icon: "📜", gradient: "from-stone-500/20 to-zinc-600/20" };
+  if (lowerTag.includes("polifon") || lowerTag.includes("polifôn")) return { icon: "🎼", gradient: "from-indigo-500/20 to-blue-600/20" };
+  
+  // Default
+  return { icon: "🎵", gradient: "from-gray-500/20 to-slate-600/20" };
+};
 
 const VOICING_TYPE_MAP: Record<string, string> = {
   unison: "Uníssono",
@@ -46,6 +65,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
   const [isSearchMode, setIsSearchMode] = useState(false);
   const { data: songs, isLoading } = useSongs();
   const { data: celebrations = [] } = useCelebrations();
+  const { data: tags = [], isLoading: tagsLoading } = useSongTags();
   
   const { data: celebrationSongs } = useCelebrationSongs(filters.celebration);
   const celebrationSongIds = useMemo(() => 
@@ -124,8 +144,8 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
 
     if (filters.tag) {
       filtered = filtered.filter((song) => {
-        const tags = Array.isArray(song.liturgical_tags) ? song.liturgical_tags as string[] : [];
-        return tags.includes(filters.tag!);
+        const songTags = Array.isArray(song.liturgical_tags) ? song.liturgical_tags as string[] : [];
+        return songTags.includes(filters.tag!);
       });
     }
 
@@ -169,26 +189,39 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
             <span className="text-muted-foreground">Buscar músicas, compositores...</span>
           </button>
 
-          {/* Category Grid */}
+          {/* Category Grid - Dynamic from Database */}
           <div className="space-y-4">
             <h2 className="font-display text-xl font-semibold">Explorar por Categoria</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.label}
-                  onClick={() => handleCategoryClick(cat.tag)}
-                  className={cn(
-                    "relative overflow-hidden rounded-2xl p-6 text-left transition-all",
-                    "bg-gradient-to-br border border-border/50",
-                    "hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]",
-                    cat.gradient
-                  )}
-                >
-                  <span className="text-4xl mb-3 block">{cat.icon}</span>
-                  <span className="font-display font-semibold text-lg">{cat.label}</span>
-                </button>
-              ))}
-            </div>
+            {tagsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-gold" />
+              </div>
+            ) : tags.length > 0 ? (
+              <div className="grid grid-cols-2 gap-4">
+                {tags.map((tag) => {
+                  const style = getTagStyle(tag.name);
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => handleCategoryClick(tag.name)}
+                      className={cn(
+                        "relative overflow-hidden rounded-2xl p-6 text-left transition-all",
+                        "bg-gradient-to-br border border-border/50",
+                        "hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]",
+                        style.gradient
+                      )}
+                    >
+                      <span className="text-4xl mb-3 block">{style.icon}</span>
+                      <span className="font-display font-semibold text-lg">{tag.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                Nenhuma categoria cadastrada
+              </p>
+            )}
           </div>
         </main>
       </div>

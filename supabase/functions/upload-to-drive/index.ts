@@ -1,226 +1,126 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Base64URL encode for JWT - handles Uint8Array properly
-function base64UrlEncode(data: Uint8Array | string): string {
-  let bytes: Uint8Array;
-  if (typeof data === 'string') {
-    bytes = new TextEncoder().encode(data);
-  } else {
-    bytes = data;
-  }
-  // Convert bytes to binary string safely
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-// Convert Uint8Array to base64 safely (handles large files)
-function arrayBufferToBase64(buffer: Uint8Array): string {
-  let binary = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < buffer.length; i += chunkSize) {
-    const chunk = buffer.subarray(i, Math.min(i + chunkSize, buffer.length));
-    for (let j = 0; j < chunk.length; j++) {
-      binary += String.fromCharCode(chunk[j]);
-    }
-  }
-  return btoa(binary);
-}
-
-// Create JWT for Google Service Account
-async function createJWT(email: string, privateKey: string): Promise<string> {
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: email,
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now,
-  };
-
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
-  const unsignedToken = `${encodedHeader}.${encodedPayload}`;
-
-  // Import private key - handle both actual newlines and escaped \n strings
-  const pemContents = privateKey
-    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-    .replace(/-----END PRIVATE KEY-----/g, '')
-    .replace(/\\n/g, '')  // Handle escaped \n from JSON
-    .replace(/\n/g, '')   // Handle actual newlines
-    .replace(/\r/g, '')   // Handle carriage returns
-    .replace(/\s/g, '');  // Remove any whitespace
-  
-  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    binaryKey,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  // Sign the token
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    cryptoKey,
-    new TextEncoder().encode(unsignedToken)
-  );
-
-  const encodedSignature = base64UrlEncode(new Uint8Array(signature));
-  return `${unsignedToken}.${encodedSignature}`;
-}
-
-// Get Google access token
-async function getAccessToken(email: string, privateKey: string): Promise<string> {
-  const jwt = await createJWT(email, privateKey);
-  
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Token error:', error);
-    throw new Error(`Failed to get access token: ${error}`);
-  }
-
-  const data = await response.json();
-  return data.access_token;
-}
-
-// Upload file to Google Drive
-async function uploadToDrive(
-  accessToken: string,
-  folderId: string,
-  fileName: string,
-  fileContent: Uint8Array,
-  mimeType: string
-): Promise<{ id: string; webViewLink: string; webContentLink: string }> {
-  const metadata = {
-    name: fileName,
-    parents: [folderId],
-  };
-
-  // Create multipart body
-  const boundary = '-------314159265358979323846';
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const closeDelimiter = `\r\n--${boundary}--`;
-
-  const metadataPart = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}`;
-  const mediaPart = `${delimiter}Content-Type: ${mimeType}\r\nContent-Transfer-Encoding: base64\r\n\r\n`;
-  
-  // Convert file content to base64 safely (handles large files)
-  const base64Content = arrayBufferToBase64(fileContent);
-  
-  const body = metadataPart + mediaPart + base64Content + closeDelimiter;
-
-  const response = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,webContentLink',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': `multipart/related; boundary=${boundary}`,
-      },
-      body,
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Upload error:', error);
-    throw new Error(`Failed to upload to Drive: ${error}`);
-  }
-
-  const result = await response.json();
-  
-  // Make file publicly accessible
-  await fetch(`https://www.googleapis.com/drive/v3/files/${result.id}/permissions`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      role: 'reader',
-      type: 'anyone',
-    }),
-  });
-
-  return {
-    id: result.id,
-    webViewLink: result.webViewLink || `https://drive.google.com/file/d/${result.id}/view`,
-    webContentLink: `https://drive.google.com/uc?export=download&id=${result.id}`,
-  };
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const serviceEmail = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_EMAIL');
-    const privateKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY');
-    const folderId = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID');
-
-    if (!serviceEmail || !privateKey || !folderId) {
-      throw new Error('Missing Google Drive configuration');
-    }
-
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const formData = await req.formData()
+    const file = formData.get('file') as File
     const songId = formData.get('songId') as string;
     const type = formData.get('fileType') as string; // 'audio' or 'score'
     const voicePart = formData.get('voicePart') as string | null;
     const uploaderId = formData.get('uploaderId') as string | null;
     const originalFileName = formData.get('fileName') as string | null;
+    
+    // Recupera as credenciais das variáveis de ambiente
+    const folderId = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID')
+    const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
+    const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
+    const refreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN')
 
-    if (!file || !songId || !type) {
-      throw new Error('Missing required fields: file, songId, fileType');
+    if (!file || !folderId || !clientId || !clientSecret || !refreshToken) {
+      console.error("Faltando credenciais:", { folderId: !!folderId, clientId: !!clientId, clientSecret: !!clientSecret, refreshToken: !!refreshToken })
+      throw new Error('Configuração de credenciais incompleta no Supabase Secrets.')
     }
 
-    console.log(`Uploading ${type} for song ${songId}: ${file.name}`);
+    if (!songId || !type) {
+      throw new Error('Missing required fields: songId, fileType');
+    }
 
-    // Get access token
-    const accessToken = await getAccessToken(serviceEmail, privateKey);
-    
-    // Read file content
-    const arrayBuffer = await file.arrayBuffer();
-    const fileContent = new Uint8Array(arrayBuffer);
-    
-    // Generate unique filename for Drive
+    console.log(`Iniciando upload de: ${file.name} (${file.type}) para música ${songId}`)
+
+    // 1. Troca o Refresh Token por um Access Token novo
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }).toString(),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error("Erro ao renovar token:", errorText);
+      throw new Error(`Falha na autenticação com Google: ${errorText}`);
+    }
+
+    const { access_token } = await tokenResponse.json();
+
+    // 2. Prepara o Upload Multipart
     const timestamp = Date.now();
     const driveFileName = `${songId}_${type}_${voicePart || 'full'}_${timestamp}_${file.name}`;
     
-    // Upload to Google Drive
-    const driveResult = await uploadToDrive(
-      accessToken,
-      folderId,
-      driveFileName,
-      fileContent,
-      file.type
+    const metadata = {
+      name: driveFileName,
+      mimeType: file.type,
+      parents: [folderId],
+    };
+
+    const boundary = '-------314159265358979323846';
+    const delimiter = `\r\n--${boundary}\r\n`;
+    const closeDelimiter = `\r\n--${boundary}--`;
+
+    const multipartRequestBody = new Blob([
+      delimiter,
+      'Content-Type: application/json\r\n\r\n',
+      JSON.stringify(metadata),
+      delimiter,
+      `Content-Type: ${file.type}\r\n\r\n`,
+      await file.arrayBuffer(),
+      closeDelimiter,
+    ]);
+
+    // 3. Envia o arquivo para o Google Drive
+    const uploadRes = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`,
+        },
+        body: multipartRequestBody,
+      }
     );
 
-    console.log(`Upload successful: ${driveResult.id}`);
+    if (!uploadRes.ok) {
+      const errorText = await uploadRes.text();
+      console.error("Erro no upload:", errorText);
+      throw new Error(`Erro ao salvar no Drive: ${errorText}`);
+    }
 
-    // Save to database
+    const driveData = await uploadRes.json();
+    console.log('Upload concluído:', driveData.id);
+
+    // 4. Tenta deixar o arquivo público para leitura
+    try {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${driveData.id}/permissions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+      });
+    } catch (e) {
+      console.warn("Não foi possível definir permissão pública:", e);
+    }
+
+    const webContentLink = driveData.webContentLink || `https://drive.google.com/uc?export=download&id=${driveData.id}`;
+    const webViewLink = driveData.webViewLink || `https://drive.google.com/file/d/${driveData.id}/view`;
+
+    // 5. Salva no banco de dados
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -233,10 +133,10 @@ serve(async (req) => {
         .insert({
           song_id: songId,
           voice_part: voicePart && voicePart !== 'tutti' ? voicePart : null,
-          file_url: driveResult.webContentLink,
-          drive_file_id: driveResult.id,
-          drive_view_link: driveResult.webViewLink,
-          drive_download_link: driveResult.webContentLink,
+          file_url: webContentLink,
+          drive_file_id: driveData.id,
+          drive_view_link: webViewLink,
+          drive_download_link: webContentLink,
           uploader_id: uploaderId,
           approved: true,
         })
@@ -250,11 +150,11 @@ serve(async (req) => {
         .from('scores')
         .insert({
           song_id: songId,
-          file_url: driveResult.webContentLink,
+          file_url: webContentLink,
           file_name: originalFileName || file.name,
-          drive_file_id: driveResult.id,
-          drive_view_link: driveResult.webViewLink,
-          drive_download_link: driveResult.webContentLink,
+          drive_file_id: driveData.id,
+          drive_view_link: webViewLink,
+          drive_download_link: webContentLink,
           uploader_id: uploaderId,
           approved: true,
         })
@@ -268,18 +168,19 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        driveFileId: driveResult.id,
-        viewLink: driveResult.webViewLink,
-        downloadLink: driveResult.webContentLink,
+        driveFileId: driveData.id,
+        viewLink: webViewLink,
+        downloadLink: webContentLink,
         record: dbResult,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    )
+
   } catch (error) {
-    console.error('Error in upload-to-drive:', error);
+    console.error('Erro na função:', error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    )
   }
-});
+})

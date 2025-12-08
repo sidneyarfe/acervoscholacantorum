@@ -6,13 +6,13 @@ import { Header } from "@/components/Header";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
 import { SongCard } from "@/components/SongCard";
 import { CelebrationCard } from "@/components/CelebrationCard";
+import { BannerCarousel } from "@/components/BannerCarousel";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useProfile } from "@/hooks/useProfile";
 import { useAudioCount } from "@/hooks/useAudioCount";
 import { useSongsAudioParts } from "@/hooks/useSongAudioParts";
 import { useToast } from "@/hooks/use-toast";
-import heroImage from "@/assets/hero-sacred.jpg";
 
 interface HomeViewProps {
   selectedVoice: string | null;
@@ -56,21 +56,8 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
       <Header />
 
       <div className="flex-1">
-        {/* Seção Hero */}
-        <section className="relative h-44 lg:h-56 overflow-hidden">
-          <img
-            src={heroImage}
-            alt="Manuscrito de música sacra"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-8">
-            <p className="text-xs lg:text-sm uppercase tracking-wider text-gold font-medium mb-1">Desde 1735</p>
-            <h2 className="font-display text-xl lg:text-3xl font-semibold text-foreground">
-              Bem vindo ao nosso Acervo Musical Digital!
-            </h2>
-          </div>
-        </section>
+        {/* Banner Carousel */}
+        <BannerCarousel />
 
         <div className="px-4 lg:px-8 py-6 lg:py-8 space-y-8">
           {/* Ações Rápidas - ocultar em desktop pois já tem a sidebar */}

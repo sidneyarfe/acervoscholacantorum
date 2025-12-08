@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Music, Calendar, Users, Shield } from "lucide-react";
+import { Music, Calendar, Users, Shield, Megaphone } from "lucide-react";
 import { AdminSongsTab } from "./AdminSongsTab";
 import { AdminCelebrationsTab } from "./AdminCelebrationsTab";
 import { AdminUsersTab } from "./AdminUsersTab";
+import { AdminBannersTab } from "./AdminBannersTab";
 
 export function AdminView() {
   const [activeTab, setActiveTab] = useState("songs");
@@ -21,14 +22,14 @@ export function AdminView() {
               Painel Administrativo
             </h1>
             <p className="text-sm text-muted-foreground">
-              Gerencie músicas, celebrações e usuários
+              Gerencie músicas, celebrações, usuários e avisos
             </p>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="songs" className="flex items-center gap-2">
               <Music className="h-4 w-4" />
               <span className="hidden sm:inline">Músicas</span>
@@ -41,6 +42,10 @@ export function AdminView() {
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
             </TabsTrigger>
+            <TabsTrigger value="banners" className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4" />
+              <span className="hidden sm:inline">Avisos</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="songs">
@@ -51,6 +56,9 @@ export function AdminView() {
           </TabsContent>
           <TabsContent value="users">
             <AdminUsersTab />
+          </TabsContent>
+          <TabsContent value="banners">
+            <AdminBannersTab />
           </TabsContent>
         </Tabs>
       </div>

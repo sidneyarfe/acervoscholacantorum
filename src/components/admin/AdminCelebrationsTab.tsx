@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Calendar, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Pencil, Trash2, Calendar, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -65,9 +66,22 @@ export function AdminCelebrationsTab() {
   const { data: celebrations, isLoading } = useAdminCelebrations();
   const deleteCelebration = useDeleteCelebration();
   
+  const [searchQuery, setSearchQuery] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCelebration, setEditingCelebration] = useState<Celebration | null>(null);
   const [deleteConfirmCelebration, setDeleteConfirmCelebration] = useState<Celebration | null>(null);
+
+  const filteredCelebrations = useMemo(() => {
+    if (!celebrations) return [];
+    if (!searchQuery.trim()) return celebrations;
+    
+    const query = searchQuery.toLowerCase();
+    return celebrations.filter((celebration) =>
+      celebration.name.toLowerCase().includes(query) ||
+      celebration.description?.toLowerCase().includes(query) ||
+      celebration.feast_type?.toLowerCase().includes(query)
+    );
+  }, [celebrations, searchQuery]);
 
   const handleEdit = (celebration: Celebration) => {
     setEditingCelebration(celebration);
@@ -101,15 +115,26 @@ export function AdminCelebrationsTab() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-gold" />
             Celebrações ({celebrations?.length || 0})
           </CardTitle>
-          <Button onClick={() => setIsFormOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nova Celebração
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar celebrações..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={() => setIsFormOpen(true)} className="gap-2 shrink-0">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nova Celebração</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -124,7 +149,7 @@ export function AdminCelebrationsTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {celebrations?.map((celebration) => (
+                {filteredCelebrations.map((celebration) => (
                   <TableRow key={celebration.id}>
                     <TableCell className="font-medium">{celebration.name}</TableCell>
                     <TableCell className="hidden md:table-cell">
@@ -167,10 +192,10 @@ export function AdminCelebrationsTab() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!celebrations?.length && (
+                {!filteredCelebrations.length && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      Nenhuma celebração cadastrada
+                      {searchQuery ? "Nenhuma celebração encontrada" : "Nenhuma celebração cadastrada"}
                     </TableCell>
                   </TableRow>
                 )}

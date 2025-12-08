@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Music, FileAudio, FileText, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Pencil, Trash2, Music, FileAudio, FileText, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -36,10 +37,24 @@ export function AdminSongsTab() {
   const { data: songs, isLoading } = useAdminSongs();
   const deleteSong = useDeleteSong();
   
+  const [searchQuery, setSearchQuery] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [mediaManagerSong, setMediaManagerSong] = useState<Song | null>(null);
   const [deleteConfirmSong, setDeleteConfirmSong] = useState<Song | null>(null);
+
+  const filteredSongs = useMemo(() => {
+    if (!songs) return [];
+    if (!searchQuery.trim()) return songs;
+    
+    const query = searchQuery.toLowerCase();
+    return songs.filter((song) =>
+      song.title.toLowerCase().includes(query) ||
+      song.composer?.toLowerCase().includes(query) ||
+      song.arranger?.toLowerCase().includes(query) ||
+      song.language?.toLowerCase().includes(query)
+    );
+  }, [songs, searchQuery]);
 
   const handleEdit = (song: Song) => {
     setEditingSong(song);
@@ -73,15 +88,26 @@ export function AdminSongsTab() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
             <Music className="h-5 w-5 text-gold" />
             Músicas ({songs?.length || 0})
           </CardTitle>
-          <Button onClick={() => setIsFormOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nova Música
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar músicas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={() => setIsFormOpen(true)} className="gap-2 shrink-0">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nova Música</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -96,7 +122,7 @@ export function AdminSongsTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {songs?.map((song) => (
+                {filteredSongs.map((song) => (
                   <TableRow key={song.id}>
                     <TableCell className="font-medium">{song.title}</TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -143,10 +169,10 @@ export function AdminSongsTab() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!songs?.length && (
+                {!filteredSongs.length && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                      Nenhuma música cadastrada
+                      {searchQuery ? "Nenhuma música encontrada" : "Nenhuma música cadastrada"}
                     </TableCell>
                   </TableRow>
                 )}

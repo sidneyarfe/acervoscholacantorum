@@ -28,12 +28,39 @@ export function useCreateSong() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (song: TablesInsert<"songs">) => {
+      // 1. Cria a música no banco
       const { data, error } = await supabase
         .from("songs")
         .insert(song)
         .select()
         .single();
       if (error) throw error;
+
+      // 2. Cria a pasta no Google Drive
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-song-folder`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({
+              songId: data.id,
+              title: data.title,
+              composer: data.composer,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          console.error("Erro ao criar pasta no Drive:", await response.text());
+        }
+      } catch (e) {
+        console.error("Erro ao criar pasta no Drive:", e);
+      }
+
       return data;
     },
     onSuccess: () => {

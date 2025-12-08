@@ -6,54 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-async function getOrCreateSubfolder(
-  accessToken: string,
-  parentFolderId: string,
-  folderName: string
-): Promise<string> {
-  // Search for existing folder
-  const searchQuery = `name='${folderName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const searchRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(searchQuery)}&fields=files(id,name)`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-
-  if (searchRes.ok) {
-    const searchData = await searchRes.json();
-    if (searchData.files && searchData.files.length > 0) {
-      console.log(`Pasta "${folderName}" encontrada: ${searchData.files[0].id}`);
-      return searchData.files[0].id;
-    }
-  }
-
-  // Create folder if not found
-  console.log(`Criando pasta "${folderName}"...`);
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: [parentFolderId],
-    }),
-  });
-
-  if (!createRes.ok) {
-    const errorText = await createRes.text();
-    console.error(`Erro ao criar pasta "${folderName}":`, errorText);
-    throw new Error(`Failed to create folder: ${folderName}`);
-  }
-
-  const folderData = await createRes.json();
-  console.log(`Pasta "${folderName}" criada: ${folderData.id}`);
-  return folderData.id;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -68,14 +20,12 @@ serve(async (req) => {
     const uploaderId = formData.get('uploaderId') as string | null;
     const originalFileName = formData.get('fileName') as string | null;
     
-    // Recupera as credenciais das variáveis de ambiente
-    const rootFolderId = Deno.env.get('GOOGLE_DRIVE_FOLDER_ID')
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
     const refreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN')
 
-    if (!file || !rootFolderId || !clientId || !clientSecret || !refreshToken) {
-      console.error("Faltando credenciais:", { rootFolderId: !!rootFolderId, clientId: !!clientId, clientSecret: !!clientSecret, refreshToken: !!refreshToken })
+    if (!file || !clientId || !clientSecret || !refreshToken) {
+      console.error("Faltando credenciais:", { clientId: !!clientId, clientSecret: !!clientSecret, refreshToken: !!refreshToken })
       throw new Error('Configuração de credenciais incompleta no Supabase Secrets.')
     }
 
@@ -85,7 +35,26 @@ serve(async (req) => {
 
     console.log(`Iniciando upload de: ${file.name} (${file.type}) para música ${songId}`)
 
-    // 1. Troca o Refresh Token por um Access Token novo
+    // 1. Buscar a pasta da música no banco
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: song, error: songError } = await supabase
+      .from('songs')
+      .select('drive_folder_id, title, composer')
+      .eq('id', songId)
+      .single();
+
+    if (songError || !song) {
+      throw new Error('Música não encontrada');
+    }
+
+    if (!song.drive_folder_id) {
+      throw new Error('Esta música não possui uma pasta no Drive. Por favor, recrie a música.');
+    }
+
+    // 2. Troca o Refresh Token por um Access Token novo
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -105,18 +74,14 @@ serve(async (req) => {
 
     const { access_token } = await tokenResponse.json();
 
-    // 2. Determina a subpasta correta
-    const subfolderName = type === 'audio' ? 'Musicas' : 'Partituras';
-    const targetFolderId = await getOrCreateSubfolder(access_token, rootFolderId, subfolderName);
-
-    // 3. Prepara o Upload Multipart
+    // 3. Prepara o Upload Multipart (diretamente na pasta da música)
     const timestamp = Date.now();
-    const driveFileName = `${songId}_${type}_${voicePart || 'full'}_${timestamp}_${file.name}`;
+    const driveFileName = `${type}_${voicePart || 'full'}_${timestamp}_${file.name}`;
     
     const metadata = {
       name: driveFileName,
       mimeType: file.type,
-      parents: [targetFolderId],
+      parents: [song.drive_folder_id], // Usa a pasta da música
     };
 
     const boundary = '-------314159265358979323846';
@@ -171,13 +136,9 @@ serve(async (req) => {
 
     const webViewLink = driveData.webViewLink || `https://drive.google.com/file/d/${driveData.id}/view`;
     // URL de streaming via proxy (resolve CORS)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const streamUrl = `${supabaseUrl}/functions/v1/stream-drive-audio?fileId=${driveData.id}`;
 
     // 6. Salva no banco de dados
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     let dbResult;
     
     if (type === 'audio') {
@@ -186,7 +147,7 @@ serve(async (req) => {
         .insert({
           song_id: songId,
           voice_part: voicePart && voicePart !== 'tutti' ? voicePart : null,
-          file_url: streamUrl, // URL do proxy para streaming
+          file_url: streamUrl,
           drive_file_id: driveData.id,
           drive_view_link: webViewLink,
           drive_download_link: `https://drive.google.com/uc?export=download&id=${driveData.id}`,
@@ -203,7 +164,7 @@ serve(async (req) => {
         .from('scores')
         .insert({
           song_id: songId,
-          file_url: webViewLink, // Para PDFs, usar webViewLink que abre no visualizador do Drive
+          file_url: webViewLink,
           file_name: originalFileName || file.name,
           drive_file_id: driveData.id,
           drive_view_link: webViewLink,

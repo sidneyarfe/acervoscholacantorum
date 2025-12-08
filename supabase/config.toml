@@ -1,5 +1,8 @@
 project_id = "miisgijrhzrjxojogtdk"
 
+[functions.create-song-folder]
+verify_jwt = false
+
 [functions.create-user]
 verify_jwt = true
 

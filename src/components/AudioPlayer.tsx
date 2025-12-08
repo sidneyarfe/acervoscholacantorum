@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
-import { Play, Pause, Loader2 } from "lucide-react";
+import { Play, Pause, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,20 @@ interface AudioPlayerProps {
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5];
 
+// Detect iOS Safari (limited OPUS support)
+const isIOSSafari = () => {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  return isIOS || (isSafari && /Macintosh/.test(ua));
+};
+
+// Check if URL likely points to OPUS file
+const isLikelyOpus = (url: string) => {
+  const lowerUrl = url.toLowerCase();
+  return lowerUrl.includes('.opus') || lowerUrl.includes('opus');
+};
+
 export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
@@ -20,6 +34,7 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -36,6 +51,7 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
     }
 
     setIsLoading(true);
+    setLoadError(null);
 
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
@@ -52,8 +68,26 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
 
     wavesurfer.load(audioUrl);
 
+    // Timeout for loading - OPUS on iOS often hangs
+    const loadTimeout = setTimeout(() => {
+      if (isLoading && !wavesurferRef.current?.getDuration()) {
+        const isSafariDevice = isIOSSafari();
+        const isOpusFile = isLikelyOpus(audioUrl);
+        
+        if (isSafariDevice && isOpusFile) {
+          setLoadError("Formato OPUS não suportado no iOS/Safari. Peça ao administrador para enviar o áudio em MP3.");
+        } else {
+          setLoadError("Erro ao carregar o áudio. Tente novamente.");
+        }
+        setIsLoading(false);
+        wavesurfer.destroy();
+      }
+    }, 10000); // 10 second timeout
+
     wavesurfer.on("ready", () => {
+      clearTimeout(loadTimeout);
       setIsLoading(false);
+      setLoadError(null);
       setDuration(wavesurfer.getDuration());
       wavesurfer.setPlaybackRate(playbackRate);
     });
@@ -71,13 +105,24 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
     wavesurfer.on("finish", () => setIsPlaying(false));
 
     wavesurfer.on("error", (e) => {
+      clearTimeout(loadTimeout);
       console.error("WaveSurfer error:", e);
+      
+      const isSafariDevice = isIOSSafari();
+      const isOpusFile = isLikelyOpus(audioUrl);
+      
+      if (isSafariDevice && isOpusFile) {
+        setLoadError("Formato OPUS não suportado no iOS/Safari. Peça ao administrador para enviar o áudio em MP3.");
+      } else {
+        setLoadError("Erro ao carregar o áudio.");
+      }
       setIsLoading(false);
     });
 
     wavesurferRef.current = wavesurfer;
 
     return () => {
+      clearTimeout(loadTimeout);
       wavesurfer.destroy();
     };
   }, [audioUrl, playbackRate]);
@@ -109,6 +154,24 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
     return (
       <div className="h-12 bg-gold/10 rounded-lg flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Nenhum áudio disponível</p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (loadError) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-sm">{voiceLabel}</span>
+        </div>
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm text-destructive font-medium">Não foi possível reproduzir</p>
+            <p className="text-xs text-muted-foreground">{loadError}</p>
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,0 +1,130 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Base64URL encode for JWT
+function base64UrlEncode(data: Uint8Array | string): string {
+  const str = typeof data === 'string' ? data : new TextDecoder().decode(data);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Create JWT for Google Service Account
+async function createJWT(email: string, privateKey: string): Promise<string> {
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: email,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const unsignedToken = `${encodedHeader}.${encodedPayload}`;
+
+  const pemContents = privateKey
+    .replace(/-----BEGIN PRIVATE KEY-----/, '')
+    .replace(/-----END PRIVATE KEY-----/, '')
+    .replace(/\n/g, '');
+  
+  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    binaryKey,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    new TextEncoder().encode(unsignedToken)
+  );
+
+  const encodedSignature = base64UrlEncode(new Uint8Array(signature));
+  return `${unsignedToken}.${encodedSignature}`;
+}
+
+// Get Google access token
+async function getAccessToken(email: string, privateKey: string): Promise<string> {
+  const jwt = await createJWT(email, privateKey);
+  
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Token error:', error);
+    throw new Error(`Failed to get access token: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const serviceEmail = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+    const privateKey = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY');
+
+    if (!serviceEmail || !privateKey) {
+      throw new Error('Missing Google Drive configuration');
+    }
+
+    const { driveFileId } = await req.json();
+
+    if (!driveFileId) {
+      throw new Error('Missing driveFileId');
+    }
+
+    console.log(`Deleting file from Drive: ${driveFileId}`);
+
+    const accessToken = await getAccessToken(serviceEmail, privateKey);
+
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${driveFileId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok && response.status !== 404) {
+      const error = await response.text();
+      console.error('Delete error:', error);
+      throw new Error(`Failed to delete from Drive: ${error}`);
+    }
+
+    console.log(`File deleted successfully: ${driveFileId}`);
+
+    return new Response(
+      JSON.stringify({ success: true }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error in delete-from-drive:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

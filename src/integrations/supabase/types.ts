@@ -100,7 +100,7 @@ export type Database = {
           is_active: boolean
           link_url: string | null
           show_text: boolean
-          title: string
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -114,7 +114,7 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           show_text?: boolean
-          title: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -128,7 +128,7 @@ export type Database = {
           is_active?: boolean
           link_url?: string | null
           show_text?: boolean
-          title?: string
+          title?: string | null
           updated_at?: string
         }
         Relationships: []

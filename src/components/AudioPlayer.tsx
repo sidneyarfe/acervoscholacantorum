@@ -2,7 +2,8 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
 import { Play, Pause, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, isIOSDevice } from "@/lib/utils";
+import { NativeAudioPlayer } from "./NativeAudioPlayer";
 
 interface AudioPlayerProps {
   audioUrl: string | null;
@@ -12,6 +13,15 @@ interface AudioPlayerProps {
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5];
 
 export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
+  // Use native player for iOS devices (better OPUS support)
+  if (isIOSDevice()) {
+    return <NativeAudioPlayer audioUrl={audioUrl} voiceLabel={voiceLabel} />;
+  }
+
+  return <WaveSurferPlayer audioUrl={audioUrl} voiceLabel={voiceLabel} />;
+}
+
+function WaveSurferPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   

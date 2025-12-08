@@ -2,7 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
 }
 
 serve(async (req) => {
@@ -44,9 +46,9 @@ serve(async (req) => {
 
     const { access_token } = await tokenResponse.json();
 
-    // Get file metadata to determine content type
+    // Get file metadata to determine content type and size
     const metaResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType,name`,
+      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType,name,size`,
       {
         headers: { Authorization: `Bearer ${access_token}` },
       }
@@ -57,8 +59,56 @@ serve(async (req) => {
     }
 
     const fileMeta = await metaResponse.json();
+    const fileSize = parseInt(fileMeta.size, 10);
+    const mimeType = fileMeta.mimeType || 'audio/ogg';
 
-    // Stream the file content
+    // Check for Range header (iOS Safari sends this for audio streaming)
+    const rangeHeader = req.headers.get('range');
+    
+    if (rangeHeader) {
+      // Parse range header: bytes=start-end
+      const matches = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+      if (matches) {
+        const start = parseInt(matches[1], 10);
+        const end = matches[2] ? parseInt(matches[2], 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+
+        console.log(`Range request: ${start}-${end}/${fileSize}`);
+
+        // Fetch partial content from Google Drive
+        const fileResponse = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+          {
+            headers: { 
+              Authorization: `Bearer ${access_token}`,
+              Range: `bytes=${start}-${end}`,
+            },
+          }
+        );
+
+        if (!fileResponse.ok && fileResponse.status !== 206) {
+          throw new Error('Failed to fetch partial file from Drive');
+        }
+
+        const body = fileResponse.body;
+
+        return new Response(body, {
+          status: 206,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': mimeType,
+            'Content-Length': chunkSize.toString(),
+            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        });
+      }
+    }
+
+    // Full file request (no range header)
+    console.log(`Full file request: ${fileMeta.name} (${fileSize} bytes)`);
+    
     const fileResponse = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
       {
@@ -73,8 +123,10 @@ serve(async (req) => {
     return new Response(fileResponse.body, {
       headers: {
         ...corsHeaders,
-        'Content-Type': fileMeta.mimeType || 'application/octet-stream',
+        'Content-Type': mimeType,
+        'Content-Length': fileSize.toString(),
         'Content-Disposition': `inline; filename="${fileMeta.name}"`,
+        'Accept-Ranges': 'bytes',
         'Cache-Control': 'public, max-age=3600',
       },
     });

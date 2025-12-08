@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Megaphone, Loader2, Eye, EyeOff, Search, GripVertical } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Pencil, Trash2, Megaphone, Loader2, Eye, EyeOff, Search, Upload, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAdminBanners, useCreateBanner, useUpdateBanner, useDeleteBanner, Banner } from "@/hooks/useBanners";
+import { useAdminBanners, useCreateBanner, useUpdateBanner, useDeleteBanner, useUploadBannerImage, Banner } from "@/hooks/useBanners";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -41,6 +41,9 @@ export function AdminBannersTab() {
   const createBanner = useCreateBanner();
   const updateBanner = useUpdateBanner();
   const deleteBanner = useDeleteBanner();
+  const uploadImage = useUploadBannerImage();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -55,23 +58,28 @@ export function AdminBannersTab() {
     link_url: "",
     is_active: true,
     display_order: 0,
+    drive_file_id: null as string | null,
   });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const filteredBanners = banners?.filter((banner) =>
-    banner.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    banner.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     banner.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleEdit = (banner: Banner) => {
     setEditingBanner(banner);
     setFormData({
-      title: banner.title,
+      title: banner.title || "",
       description: banner.description || "",
       image_url: banner.image_url || "",
       link_url: banner.link_url || "",
       is_active: banner.is_active,
       display_order: banner.display_order,
+      drive_file_id: banner.drive_file_id,
     });
+    setPreviewImage(banner.image_url);
     setIsFormOpen(true);
   };
 
@@ -84,13 +92,81 @@ export function AdminBannersTab() {
       link_url: "",
       is_active: true,
       display_order: (banners?.length || 0) + 1,
+      drive_file_id: null,
     });
+    setPreviewImage(null);
     setIsFormOpen(true);
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Formato não suportado. Use JPG, PNG, WebP ou GIF.");
+      return;
+    }
+
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 10MB.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // Delete previous Drive file if exists
+      if (formData.drive_file_id) {
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          await supabase.functions.invoke("delete-from-drive", {
+            body: { driveFileId: formData.drive_file_id },
+          });
+        } catch (e) {
+          console.warn("Erro ao deletar imagem anterior:", e);
+        }
+      }
+
+      const result = await uploadImage.mutateAsync(file);
+      setFormData((f) => ({
+        ...f,
+        image_url: result.imageUrl,
+        drive_file_id: result.driveFileId,
+      }));
+      setPreviewImage(result.imageUrl);
+      toast.success("Imagem enviada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao enviar imagem:", error);
+      toast.error("Erro ao enviar imagem");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (formData.drive_file_id) {
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        await supabase.functions.invoke("delete-from-drive", {
+          body: { driveFileId: formData.drive_file_id },
+        });
+      } catch (e) {
+        console.warn("Erro ao deletar imagem:", e);
+      }
+    }
+    setFormData((f) => ({ ...f, image_url: "", drive_file_id: null }));
+    setPreviewImage(null);
+  };
+
   const handleSave = async () => {
-    if (!formData.title.trim()) {
-      toast.error("Título é obrigatório");
+    // Validate: must have either image or title
+    if (!formData.image_url && !formData.title?.trim()) {
+      toast.error("Adicione uma imagem ou um título");
       return;
     }
 
@@ -98,12 +174,24 @@ export function AdminBannersTab() {
       if (editingBanner) {
         await updateBanner.mutateAsync({
           id: editingBanner.id,
-          ...formData,
+          title: formData.title || null,
+          description: formData.description || null,
+          image_url: formData.image_url || null,
+          link_url: formData.link_url || null,
+          is_active: formData.is_active,
+          display_order: formData.display_order,
+          drive_file_id: formData.drive_file_id,
         });
         toast.success("Aviso atualizado com sucesso");
       } else {
         await createBanner.mutateAsync({
-          ...formData,
+          title: formData.title || null,
+          description: formData.description || null,
+          image_url: formData.image_url || null,
+          link_url: formData.link_url || null,
+          is_active: formData.is_active,
+          display_order: formData.display_order,
+          drive_file_id: formData.drive_file_id,
           created_by: user?.id || null,
         });
         toast.success("Aviso criado com sucesso");
@@ -117,7 +205,10 @@ export function AdminBannersTab() {
   const handleDelete = async () => {
     if (!deleteConfirmBanner) return;
     try {
-      await deleteBanner.mutateAsync(deleteConfirmBanner.id);
+      await deleteBanner.mutateAsync({
+        id: deleteConfirmBanner.id,
+        driveFileId: deleteConfirmBanner.drive_file_id,
+      });
       toast.success("Aviso excluído com sucesso");
       setDeleteConfirmBanner(null);
     } catch (error) {
@@ -175,6 +266,7 @@ export function AdminBannersTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
+                  <TableHead className="w-16">Img</TableHead>
                   <TableHead>Título</TableHead>
                   <TableHead className="hidden md:table-cell">Descrição</TableHead>
                   <TableHead className="w-24">Status</TableHead>
@@ -187,7 +279,22 @@ export function AdminBannersTab() {
                     <TableCell className="text-muted-foreground">
                       {banner.display_order}
                     </TableCell>
-                    <TableCell className="font-medium">{banner.title}</TableCell>
+                    <TableCell>
+                      {banner.image_url ? (
+                        <img
+                          src={banner.image_url}
+                          alt=""
+                          className="w-12 h-8 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-12 h-8 bg-muted rounded flex items-center justify-center">
+                          <Image className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {banner.title || <span className="text-muted-foreground italic">Sem título</span>}
+                    </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground max-w-xs truncate">
                       {banner.description || "-"}
                     </TableCell>
@@ -239,7 +346,7 @@ export function AdminBannersTab() {
                 ))}
                 {!filteredBanners?.length && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       {searchQuery ? "Nenhum aviso encontrado" : "Nenhum aviso cadastrado"}
                     </TableCell>
                   </TableRow>
@@ -259,14 +366,68 @@ export function AdminBannersTab() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Image Upload Section */}
             <div className="space-y-2">
-              <Label htmlFor="title">Título *</Label>
+              <Label>Imagem do Banner</Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-4">
+                {previewImage ? (
+                  <div className="relative">
+                    <img
+                      src={previewImage}
+                      alt="Preview"
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="flex flex-col items-center justify-center py-6 cursor-pointer hover:bg-muted/50 rounded-lg transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-gold mb-2" />
+                    ) : (
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {isUploading ? "Enviando..." : "Clique para fazer upload"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      JPG, PNG, WebP ou GIF (máx. 10MB)
+                    </p>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Proporção recomendada: <span className="font-medium">16:9</span> (ex: 1920x1080, 1280x720)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Título</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData((f) => ({ ...f, title: e.target.value }))}
-                placeholder="Ex: Ensaio especial nesta sexta"
+                placeholder="Ex: Ensaio especial nesta sexta (opcional)"
               />
+              <p className="text-xs text-muted-foreground">
+                Opcional. Se não preencher, apenas a imagem será exibida.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -275,22 +436,9 @@ export function AdminBannersTab() {
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Detalhes adicionais sobre o aviso..."
-                rows={3}
+                placeholder="Detalhes adicionais sobre o aviso... (opcional)"
+                rows={2}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="image_url">URL da Imagem</Label>
-              <Input
-                id="image_url"
-                value={formData.image_url}
-                onChange={(e) => setFormData((f) => ({ ...f, image_url: e.target.value }))}
-                placeholder="https://exemplo.com/imagem.jpg"
-              />
-              <p className="text-xs text-muted-foreground">
-                Opcional. Imagem de fundo para o banner.
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -328,14 +476,14 @@ export function AdminBannersTab() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setIsFormOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave} disabled={createBanner.isPending || updateBanner.isPending}>
-                {createBanner.isPending || updateBanner.isPending ? (
+              <Button onClick={handleSave} disabled={createBanner.isPending || updateBanner.isPending || isUploading}>
+                {(createBanner.isPending || updateBanner.isPending) && (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : null}
+                )}
                 Salvar
               </Button>
             </div>
@@ -349,7 +497,7 @@ export function AdminBannersTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir aviso?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir "{deleteConfirmBanner?.title}"?
+              Tem certeza que deseja excluir "{deleteConfirmBanner?.title || 'este aviso'}"?
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>

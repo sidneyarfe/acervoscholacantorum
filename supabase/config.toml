@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.stream-drive-audio]
 verify_jwt = false
+
+[functions.upload-banner-image]
+verify_jwt = true

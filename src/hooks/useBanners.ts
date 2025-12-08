@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface Banner {
   id: string;
-  title: string;
+  title: string | null;
   description: string | null;
   image_url: string | null;
   link_url: string | null;
@@ -12,6 +12,7 @@ export interface Banner {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  drive_file_id: string | null;
 }
 
 export function useBanners() {
@@ -92,13 +93,40 @@ export function useDeleteBanner() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, driveFileId }: { id: string; driveFileId?: string | null }) => {
+      // Delete from Google Drive if file exists
+      if (driveFileId) {
+        try {
+          await supabase.functions.invoke("delete-from-drive", {
+            body: { driveFileId },
+          });
+        } catch (e) {
+          console.warn("Erro ao deletar imagem do Drive:", e);
+        }
+      }
+
       const { error } = await supabase.from("banners").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["banners"] });
       queryClient.invalidateQueries({ queryKey: ["admin-banners"] });
+    },
+  });
+}
+
+export function useUploadBannerImage() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data, error } = await supabase.functions.invoke("upload-banner-image", {
+        body: formData,
+      });
+
+      if (error) throw error;
+      return data as { success: boolean; driveFileId: string; imageUrl: string; viewLink: string };
     },
   });
 }

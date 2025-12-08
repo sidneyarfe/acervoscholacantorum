@@ -94,6 +94,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           display_order: number
+          drive_file_id: string | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -106,6 +107,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          drive_file_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -118,6 +120,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          drive_file_id?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean

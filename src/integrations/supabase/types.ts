@@ -487,6 +487,7 @@ export type Database = {
           copyright_info: string | null
           created_at: string
           created_by: string | null
+          drive_folder_id: string | null
           genre: string | null
           id: string
           language: string | null
@@ -502,6 +503,7 @@ export type Database = {
           copyright_info?: string | null
           created_at?: string
           created_by?: string | null
+          drive_folder_id?: string | null
           genre?: string | null
           id?: string
           language?: string | null
@@ -517,6 +519,7 @@ export type Database = {
           copyright_info?: string | null
           created_at?: string
           created_by?: string | null
+          drive_folder_id?: string | null
           genre?: string | null
           id?: string
           language?: string | null

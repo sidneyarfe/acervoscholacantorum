@@ -30,6 +30,7 @@ export function BannerCarousel() {
   }
 
   const currentBanner = banners[currentIndex];
+  const hasTextContent = currentBanner.title || currentBanner.description;
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
@@ -46,41 +47,47 @@ export function BannerCarousel() {
   };
 
   return (
-    <div className="relative h-44 lg:h-56 mx-4 lg:mx-8 mt-4 overflow-hidden rounded-2xl group">
+    <div 
+      className={cn(
+        "relative h-44 lg:h-56 mx-4 lg:mx-8 mt-4 overflow-hidden rounded-2xl group",
+        currentBanner.link_url && "cursor-pointer"
+      )}
+      onClick={handleBannerClick}
+    >
       {/* Background Image or Gradient */}
       {currentBanner.image_url ? (
         <img
           src={currentBanner.image_url}
-          alt={currentBanner.title}
+          alt={currentBanner.title || "Banner"}
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-gold/20 via-rose/10 to-background" />
       )}
       
-      {/* Overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
+      {/* Overlay for text readability - only if there's text content */}
+      {hasTextContent && (
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
+      )}
 
-      {/* Content */}
-      <div
-        className={cn(
-          "absolute bottom-0 left-0 right-0 p-4 lg:p-6",
-          currentBanner.link_url && "cursor-pointer"
-        )}
-        onClick={handleBannerClick}
-      >
-        <p className="text-xs lg:text-sm uppercase tracking-wider text-gold font-medium mb-1">
-          Aviso
-        </p>
-        <h2 className="font-display text-xl lg:text-2xl font-semibold text-foreground line-clamp-2">
-          {currentBanner.title}
-        </h2>
-        {currentBanner.description && (
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-            {currentBanner.description}
+      {/* Content - only show if there's text content */}
+      {hasTextContent && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6">
+          <p className="text-xs lg:text-sm uppercase tracking-wider text-gold font-medium mb-1">
+            Aviso
           </p>
-        )}
-      </div>
+          {currentBanner.title && (
+            <h2 className="font-display text-xl lg:text-2xl font-semibold text-foreground line-clamp-2">
+              {currentBanner.title}
+            </h2>
+          )}
+          {currentBanner.description && (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+              {currentBanner.description}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Navigation Arrows */}
       {banners.length > 1 && (

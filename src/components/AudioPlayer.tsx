@@ -27,6 +27,14 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Detect iOS/Safari for MediaElement backend (fixes OPUS playback)
+  const isIOSSafari = () => {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+    return isIOS || isSafari;
+  };
+
   const initWaveSurfer = useCallback(() => {
     if (!containerRef.current || !audioUrl) return;
 
@@ -37,6 +45,8 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
 
     setIsLoading(true);
 
+    const useMediaElement = isIOSSafari();
+    
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
       waveColor: "hsl(43 74% 62% / 0.4)",
@@ -48,6 +58,7 @@ export function AudioPlayer({ audioUrl, voiceLabel }: AudioPlayerProps) {
       barRadius: 2,
       height: 48,
       normalize: true,
+      ...(useMediaElement && { backend: "MediaElement" as const }),
     });
 
     wavesurfer.load(audioUrl);

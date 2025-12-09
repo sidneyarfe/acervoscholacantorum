@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
 import { CelebrationCard } from "@/components/CelebrationCard";
 import { BannerCarousel } from "@/components/BannerCarousel";
-import { RecentSearches } from "@/components/RecentSearches";
+import { RecentSongs } from "@/components/RecentSongs";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useProfile } from "@/hooks/useProfile";
@@ -38,10 +38,6 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
       title: "Naipe selecionado",
       description: `Áudios de ${voiceId === 'soprano' ? 'Soprano' : voiceId === 'contralto' ? 'Contralto' : voiceId === 'tenor' ? 'Tenor' : 'Baixo'} serão priorizados.`,
     });
-  };
-
-  const handleRecentSearchClick = (query: string) => {
-    onNavigate("search");
   };
 
   return (
@@ -105,10 +101,10 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
                 </p>
               </section>
 
-              {/* Buscas Recentes */}
-              <RecentSearches
-                searches={recentSearches}
-                onSearchClick={handleRecentSearchClick}
+              {/* Músicas Recentes */}
+              <RecentSongs
+                recentSearches={recentSearches}
+                onSelectSong={onSelectSong}
                 onRemove={removeSearch}
                 onClear={clearSearches}
                 showEmpty={true}

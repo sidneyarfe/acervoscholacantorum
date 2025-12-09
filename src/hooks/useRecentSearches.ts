@@ -8,7 +8,10 @@ interface RecentSearch {
   query: string;
   timestamp: number;
   type: "song" | "celebration";
+  itemId?: string;
 }
+
+export type { RecentSearch };
 
 export function useRecentSearches() {
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
@@ -24,16 +27,20 @@ export function useRecentSearches() {
     }
   }, []);
 
-  const addSearch = useCallback((query: string, type: "song" | "celebration" = "song") => {
+  const addSearch = useCallback((query: string, type: "song" | "celebration" = "song", itemId?: string) => {
     if (!query.trim()) return;
     
     setRecentSearches((prev) => {
-      const filtered = prev.filter((s) => s.query.toLowerCase() !== query.toLowerCase());
+      // Filtrar por itemId (se existir) ou por query
+      const filtered = itemId 
+        ? prev.filter((s) => s.itemId !== itemId)
+        : prev.filter((s) => s.query.toLowerCase() !== query.toLowerCase());
       const newSearch: RecentSearch = {
         id: Date.now().toString(),
         query: query.trim(),
         timestamp: Date.now(),
         type,
+        itemId,
       };
       const updated = [newSearch, ...filtered].slice(0, MAX_RECENT_SEARCHES);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));

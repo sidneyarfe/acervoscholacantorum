@@ -5,7 +5,7 @@ import { SongCard } from "@/components/SongCard";
 import { CelebrationCard } from "@/components/CelebrationCard";
 import { SearchFiltersSheet } from "@/components/SearchFiltersSheet";
 import { SearchFiltersState } from "@/components/SearchFilters";
-import { RecentSearches } from "@/components/RecentSearches";
+import { RecentSongs } from "@/components/RecentSongs";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrationSongs } from "@/hooks/useSongCelebrations";
 import { useCelebrations } from "@/hooks/useCelebrations";
@@ -216,10 +216,10 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
             <span className="text-muted-foreground">Buscar músicas ou celebrações...</span>
           </button>
 
-          {/* Recent Searches */}
-          <RecentSearches
-            searches={recentSearches}
-            onSearchClick={handleRecentSearchClick}
+          {/* Recent Songs */}
+          <RecentSongs
+            recentSearches={recentSearches}
+            onSelectSong={onSelectSong}
             onRemove={removeSearch}
             onClear={clearSearches}
             showEmpty={true}
@@ -292,11 +292,11 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
       </header>
 
       <main className="flex-1 px-4 lg:px-8 py-4 space-y-6">
-        {/* Recent Searches - show when no query and no active filters */}
+        {/* Recent Songs - show when no query and no active filters */}
         {!searchQuery && !hasActiveFilters && (
-          <RecentSearches
-            searches={recentSearches}
-            onSearchClick={handleRecentSearchClick}
+          <RecentSongs
+            recentSearches={recentSearches}
+            onSelectSong={onSelectSong}
             onRemove={removeSearch}
             onClear={clearSearches}
             showEmpty={true}
@@ -342,8 +342,7 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
                       key={song.id}
                       song={song}
                       onClick={() => {
-                        const searchTerm = searchQuery.trim() || song.title;
-                        addSearch(searchTerm, "song");
+                        addSearch(song.title, "song", song.id);
                         onSelectSong(song.id);
                       }}
                     />
@@ -366,8 +365,7 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
                       key={celebration.id}
                       celebration={celebration}
                       onClick={() => {
-                        const searchTerm = searchQuery.trim() || celebration.name;
-                        addSearch(searchTerm, "celebration");
+                        addSearch(celebration.name, "celebration", celebration.id);
                         onSelectCelebration?.(celebration.id);
                       }}
                       showArrow

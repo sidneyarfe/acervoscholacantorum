@@ -341,7 +341,12 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
                     <SongCard
                       key={song.id}
                       song={song}
-                      onClick={() => onSelectSong(song.id)}
+                      onClick={() => {
+                        if (searchQuery.trim()) {
+                          addSearch(searchQuery.trim());
+                        }
+                        onSelectSong(song.id);
+                      }}
                     />
                   ))}
                 </div>
@@ -361,7 +366,12 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
                     <CelebrationCard
                       key={celebration.id}
                       celebration={celebration}
-                      onClick={() => onSelectCelebration?.(celebration.id)}
+                      onClick={() => {
+                        if (searchQuery.trim()) {
+                          addSearch(searchQuery.trim());
+                        }
+                        onSelectCelebration?.(celebration.id);
+                      }}
                       showArrow
                     />
                   ))}

@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { FileAudio, FileText, Upload, Trash2, Loader2, Play, ExternalLink } from "lucide-react";
+import { FileAudio, FileText, Upload, Trash2, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ import {
   Song,
 } from "@/hooks/useAdminData";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAudioConverter } from "@/hooks/useAudioConverter";
 import { toast } from "sonner";
 
 interface SongMediaManagerProps {
@@ -52,6 +54,9 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
   const uploadScore = useUploadScore();
   const deleteAudio = useDeleteAudio();
   const deleteScore = useDeleteScore();
+  
+  // Audio converter hook
+  const { convertToMp3, isConverting, conversionProgress } = useAudioConverter();
 
   const [selectedVoice, setSelectedVoice] = useState<string>("soprano");
   const [deleteAudioId, setDeleteAudioId] = useState<string | null>(null);
@@ -110,15 +115,19 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
     }
 
     try {
+      // Convert to MP3 for iOS compatibility
+      const mp3File = await convertToMp3(file);
+      
       await uploadAudio.mutateAsync({
-        file,
+        file: mp3File,
         songId: song.id,
         voicePart: selectedVoice as "soprano" | "contralto" | "tenor" | "baixo",
         uploaderId: user.id,
       });
       toast.success("Áudio enviado com sucesso");
     } catch (error) {
-      toast.error("Erro ao enviar áudio");
+      console.error("Upload error:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao enviar áudio");
     }
     
     if (audioInputRef.current) {
@@ -184,6 +193,17 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Conversion Progress */}
+          {isConverting && conversionProgress && (
+            <div className="space-y-2 p-3 bg-gold/10 rounded-lg">
+              <div className="flex items-center gap-2 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                <span>{conversionProgress.message}</span>
+              </div>
+              <Progress value={conversionProgress.progress} className="h-2" />
+            </div>
+          )}
+          
           {/* Upload Controls */}
           <div className="flex flex-col sm:flex-row gap-3">
             <Select value={selectedVoice} onValueChange={setSelectedVoice}>
@@ -207,15 +227,15 @@ export function SongMediaManager({ song }: SongMediaManagerProps) {
             <Button
               variant="outline"
               onClick={() => audioInputRef.current?.click()}
-              disabled={uploadAudio.isPending}
+              disabled={uploadAudio.isPending || isConverting}
               className="gap-2"
             >
-              {uploadAudio.isPending ? (
+              {(uploadAudio.isPending || isConverting) ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              Enviar Áudio
+              {isConverting ? "Convertendo..." : uploadAudio.isPending ? "Enviando..." : "Enviar Áudio"}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">

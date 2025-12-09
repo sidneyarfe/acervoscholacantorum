@@ -74,7 +74,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col min-h-screen">
       <Header title="Repertório" showLogo={false} />
 
       <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6">

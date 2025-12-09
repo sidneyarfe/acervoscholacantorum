@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { 
   Mail, Lock, User, Eye, EyeOff, Loader2, 
-  Phone, MapPin, Calendar, Music 
+  Phone, MapPin, Calendar, Music, ArrowLeft, CheckCircle 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import scholaLogo from "@/assets/schola-logo.png";
 
 // Funções de formatação
@@ -70,7 +71,15 @@ const signUpSchema = z.object({
   joinDate: z.string().min(1, "Informe a data de entrada"),
 });
 
-type FormErrors = Partial<Record<keyof z.infer<typeof signUpSchema>, string>>;
+const resetPasswordSchema = z.object({
+  newPassword: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
+type FormErrors = Partial<Record<keyof z.infer<typeof signUpSchema> | "newPassword" | "confirmPassword", string>>;
 
 const voiceOptions = [
   { value: "soprano", label: "Soprano" },
@@ -79,11 +88,14 @@ const voiceOptions = [
   { value: "baixo", label: "Baixo" },
 ];
 
+type AuthMode = "login" | "signup" | "forgot" | "reset";
+
 export default function Auth() {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [mode, setMode] = useState<AuthMode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [recoveryEmailSent, setRecoveryEmailSent] = useState(false);
 
   // Campos do formulário
   const [email, setEmail] = useState("");
@@ -96,23 +108,41 @@ export default function Auth() {
   const [joinDate, setJoinDate] = useState("");
   const [hasStole, setHasStole] = useState(false);
   const [hasVestment, setHasVestment] = useState(false);
+  
+  // Campos de reset de senha
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const { signUp, signIn, user } = useAuth();
+  const { signUp, signIn, user, resetPassword, updatePassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Detectar evento de recuperação de senha
   useEffect(() => {
-    if (user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user && mode !== "reset") {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, navigate, mode]);
 
   const validateForm = () => {
     try {
-      if (isSignUp) {
+      if (mode === "signup") {
         signUpSchema.parse({ 
           email, password, fullName, cpf, phone, address, preferredVoice, joinDate 
         });
+      } else if (mode === "reset") {
+        resetPasswordSchema.parse({ newPassword, confirmPassword });
+      } else if (mode === "forgot") {
+        z.string().email("Email inválido").parse(email);
       } else {
         loginSchema.parse({ email, password });
       }
@@ -140,7 +170,7 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isSignUp) {
+      if (mode === "signup") {
         const { error } = await signUp(email, password, {
           fullName,
           cpf: cpf.replace(/\D/g, ''),
@@ -170,6 +200,34 @@ export default function Auth() {
           toast({
             title: "Conta criada!",
             description: "Bem-vindo à Schola Cantorum!",
+          });
+          navigate("/");
+        }
+      } else if (mode === "forgot") {
+        const { error } = await resetPassword(email);
+        
+        if (error) {
+          toast({
+            title: "Erro ao enviar email",
+            description: "Verifique se o email está correto e tente novamente.",
+            variant: "destructive",
+          });
+        } else {
+          setRecoveryEmailSent(true);
+        }
+      } else if (mode === "reset") {
+        const { error } = await updatePassword(newPassword);
+        
+        if (error) {
+          toast({
+            title: "Erro ao redefinir senha",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Senha alterada!",
+            description: "Sua senha foi redefinida com sucesso.",
           });
           navigate("/");
         }
@@ -216,7 +274,28 @@ export default function Auth() {
     setJoinDate("");
     setHasStole(false);
     setHasVestment(false);
+    setNewPassword("");
+    setConfirmPassword("");
     setErrors({});
+    setRecoveryEmailSent(false);
+  };
+
+  const getTitle = () => {
+    switch (mode) {
+      case "signup": return "Criar Conta";
+      case "forgot": return "Recuperar Senha";
+      case "reset": return "Redefinir Senha";
+      default: return "Entrar";
+    }
+  };
+
+  const getSubtitle = () => {
+    switch (mode) {
+      case "signup": return "Preencha seus dados para acessar o acervo musical";
+      case "forgot": return "Informe seu email para receber o link de recuperação";
+      case "reset": return "Digite sua nova senha";
+      default: return "Entre com suas credenciais";
+    }
   };
 
   return (
@@ -232,190 +311,342 @@ export default function Auth() {
 
       <Card className="w-full max-w-md" variant="elevated">
         <CardHeader className="text-center pb-2">
+          {(mode === "forgot" || mode === "reset") && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                resetForm();
+              }}
+              className="absolute left-4 top-4 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
           <h2 className="font-display text-xl font-semibold">
-            {isSignUp ? "Criar Conta" : "Entrar"}
+            {getTitle()}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {isSignUp
-              ? "Preencha seus dados para acessar o acervo musical"
-              : "Entre com suas credenciais"}
+            {getSubtitle()}
           </p>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp ? (
-              <>
-                {/* Dados Pessoais */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                    Dados Pessoais
-                  </h3>
-                  
-                  {/* Nome Completo */}
-                  <div className="space-y-1">
-                    <Label htmlFor="fullName">Nome Completo *</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="fullName"
-                        type="text"
-                        placeholder="Seu nome completo"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="pl-10"
-                        disabled={loading}
-                      />
-                    </div>
-                    {errors.fullName && (
-                      <p className="text-xs text-destructive">{errors.fullName}</p>
-                    )}
-                  </div>
-
-                  {/* CPF */}
-                  <div className="space-y-1">
-                    <Label htmlFor="cpf">CPF *</Label>
-                    <Input
-                      id="cpf"
-                      type="text"
-                      placeholder="000.000.000-00"
-                      value={cpf}
-                      onChange={(e) => setCpf(formatCPF(e.target.value))}
-                      disabled={loading}
-                    />
-                    {errors.cpf && (
-                      <p className="text-xs text-destructive">{errors.cpf}</p>
-                    )}
-                  </div>
-
-                  {/* Telefone */}
-                  <div className="space-y-1">
-                    <Label htmlFor="phone">Telefone *</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="phone"
-                        type="text"
-                        placeholder="(00) 00000-0000"
-                        value={phone}
-                        onChange={(e) => setPhone(formatPhone(e.target.value))}
-                        className="pl-10"
-                        disabled={loading}
-                      />
-                    </div>
-                    {errors.phone && (
-                      <p className="text-xs text-destructive">{errors.phone}</p>
-                    )}
-                  </div>
-
-                  {/* Endereço */}
-                  <div className="space-y-1">
-                    <Label htmlFor="address">Endereço *</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="address"
-                        type="text"
-                        placeholder="Rua, número, bairro"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        className="pl-10"
-                        disabled={loading}
-                      />
-                    </div>
-                    {errors.address && (
-                      <p className="text-xs text-destructive">{errors.address}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Dados da Schola */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                    Dados da Schola
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Naipe */}
+          {/* Formulário de Recuperação - Email enviado */}
+          {mode === "forgot" && recoveryEmailSent ? (
+            <div className="text-center py-6 space-y-4">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+              <div>
+                <h3 className="font-medium text-lg">Email enviado!</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Verifique sua caixa de entrada em <strong>{email}</strong> e clique no link para redefinir sua senha.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setMode("login");
+                  resetForm();
+                }}
+                className="mt-4"
+              >
+                Voltar para o login
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === "signup" ? (
+                <>
+                  {/* Dados Pessoais */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                      Dados Pessoais
+                    </h3>
+                    
+                    {/* Nome Completo */}
                     <div className="space-y-1">
-                      <Label htmlFor="preferredVoice">Naipe *</Label>
-                      <Select value={preferredVoice} onValueChange={setPreferredVoice} disabled={loading}>
-                        <SelectTrigger>
-                          <Music className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {voiceOptions.map((voice) => (
-                            <SelectItem key={voice.value} value={voice.value}>
-                              {voice.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.preferredVoice && (
-                        <p className="text-xs text-destructive">{errors.preferredVoice}</p>
-                      )}
-                    </div>
-
-                    {/* Data de Entrada */}
-                    <div className="space-y-1">
-                      <Label htmlFor="joinDate">Data de Entrada *</Label>
+                      <Label htmlFor="fullName">Nome Completo *</Label>
                       <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                          id="joinDate"
-                          type="date"
-                          value={joinDate}
-                          onChange={(e) => setJoinDate(e.target.value)}
+                          id="fullName"
+                          type="text"
+                          placeholder="Seu nome completo"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
                           className="pl-10"
                           disabled={loading}
                         />
                       </div>
-                      {errors.joinDate && (
-                        <p className="text-xs text-destructive">{errors.joinDate}</p>
+                      {errors.fullName && (
+                        <p className="text-xs text-destructive">{errors.fullName}</p>
+                      )}
+                    </div>
+
+                    {/* CPF */}
+                    <div className="space-y-1">
+                      <Label htmlFor="cpf">CPF *</Label>
+                      <Input
+                        id="cpf"
+                        type="text"
+                        placeholder="000.000.000-00"
+                        value={cpf}
+                        onChange={(e) => setCpf(formatCPF(e.target.value))}
+                        disabled={loading}
+                      />
+                      {errors.cpf && (
+                        <p className="text-xs text-destructive">{errors.cpf}</p>
+                      )}
+                    </div>
+
+                    {/* Telefone */}
+                    <div className="space-y-1">
+                      <Label htmlFor="phone">Telefone *</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="phone"
+                          type="text"
+                          placeholder="(00) 00000-0000"
+                          value={phone}
+                          onChange={(e) => setPhone(formatPhone(e.target.value))}
+                          className="pl-10"
+                          disabled={loading}
+                        />
+                      </div>
+                      {errors.phone && (
+                        <p className="text-xs text-destructive">{errors.phone}</p>
+                      )}
+                    </div>
+
+                    {/* Endereço */}
+                    <div className="space-y-1">
+                      <Label htmlFor="address">Endereço *</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="address"
+                          type="text"
+                          placeholder="Rua, número, bairro"
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          className="pl-10"
+                          disabled={loading}
+                        />
+                      </div>
+                      {errors.address && (
+                        <p className="text-xs text-destructive">{errors.address}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Itens que possui */}
-                  <div className="space-y-2">
-                    <Label>Itens que possui</Label>
-                    <div className="flex gap-6">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="hasVestment" 
-                          checked={hasVestment}
-                          onCheckedChange={(checked) => setHasVestment(checked === true)}
-                          disabled={loading}
-                        />
-                        <Label htmlFor="hasVestment" className="text-sm font-normal cursor-pointer">
-                          Veste
-                        </Label>
+                  {/* Dados da Schola */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                      Dados da Schola
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Naipe */}
+                      <div className="space-y-1">
+                        <Label htmlFor="preferredVoice">Naipe *</Label>
+                        <Select value={preferredVoice} onValueChange={setPreferredVoice} disabled={loading}>
+                          <SelectTrigger>
+                            <Music className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {voiceOptions.map((voice) => (
+                              <SelectItem key={voice.value} value={voice.value}>
+                                {voice.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.preferredVoice && (
+                          <p className="text-xs text-destructive">{errors.preferredVoice}</p>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="hasStole" 
-                          checked={hasStole}
-                          onCheckedChange={(checked) => setHasStole(checked === true)}
-                          disabled={loading}
-                        />
-                        <Label htmlFor="hasStole" className="text-sm font-normal cursor-pointer">
-                          Estola
-                        </Label>
+
+                      {/* Data de Entrada */}
+                      <div className="space-y-1">
+                        <Label htmlFor="joinDate">Data de Entrada *</Label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="joinDate"
+                            type="date"
+                            value={joinDate}
+                            onChange={(e) => setJoinDate(e.target.value)}
+                            className="pl-10"
+                            disabled={loading}
+                          />
+                        </div>
+                        {errors.joinDate && (
+                          <p className="text-xs text-destructive">{errors.joinDate}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Itens que possui */}
+                    <div className="space-y-2">
+                      <Label>Itens que possui</Label>
+                      <div className="flex gap-6">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="hasVestment" 
+                            checked={hasVestment}
+                            onCheckedChange={(checked) => setHasVestment(checked === true)}
+                            disabled={loading}
+                          />
+                          <Label htmlFor="hasVestment" className="text-sm font-normal cursor-pointer">
+                            Veste
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="hasStole" 
+                            checked={hasStole}
+                            onCheckedChange={(checked) => setHasStole(checked === true)}
+                            disabled={loading}
+                          />
+                          <Label htmlFor="hasStole" className="text-sm font-normal cursor-pointer">
+                            Estola
+                          </Label>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Dados de Acesso */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                    Dados de Acesso
-                  </h3>
+                  {/* Dados de Acesso */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                      Dados de Acesso
+                    </h3>
 
-                  {/* Email */}
-                  <div className="space-y-1">
-                    <Label htmlFor="email">Email *</Label>
+                    {/* Email */}
+                    <div className="space-y-1">
+                      <Label htmlFor="email">Email *</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-10"
+                          disabled={loading}
+                        />
+                      </div>
+                      {errors.email && (
+                        <p className="text-xs text-destructive">{errors.email}</p>
+                      )}
+                    </div>
+
+                    {/* Senha */}
+                    <div className="space-y-1">
+                      <Label htmlFor="password">Senha *</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Mínimo 6 caracteres"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="pl-10 pr-10"
+                          disabled={loading}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {errors.password && (
+                        <p className="text-xs text-destructive">{errors.password}</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : mode === "forgot" ? (
+                <>
+                  {/* Formulário de Recuperação */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10"
+                        disabled={loading}
+                      />
+                    </div>
+                    {errors.email && (
+                      <p className="text-xs text-destructive">{errors.email}</p>
+                    )}
+                  </div>
+                </>
+              ) : mode === "reset" ? (
+                <>
+                  {/* Formulário de Reset */}
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">Nova Senha</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="newPassword"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Mínimo 6 caracteres"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="pl-10 pr-10"
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {errors.newPassword && (
+                      <p className="text-xs text-destructive">{errors.newPassword}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="confirmPassword"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Repita a senha"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="pl-10"
+                        disabled={loading}
+                      />
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Login simples */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -433,15 +664,14 @@ export default function Auth() {
                     )}
                   </div>
 
-                  {/* Senha */}
-                  <div className="space-y-1">
-                    <Label htmlFor="password">Senha *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder="••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="pl-10 pr-10"
@@ -459,92 +689,66 @@ export default function Auth() {
                       <p className="text-xs text-destructive">{errors.password}</p>
                     )}
                   </div>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Login simples */}
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      disabled={loading}
-                    />
-                  </div>
-                  {errors.email && (
-                    <p className="text-xs text-destructive">{errors.email}</p>
-                  )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      disabled={loading}
-                    />
+                  {/* Link esqueci senha */}
+                  <div className="text-right">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setMode("forgot");
+                        setErrors({});
+                      }}
+                      className="text-sm text-gold hover:text-gold-dark"
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      Esqueci minha senha
                     </button>
                   </div>
-                  {errors.password && (
-                    <p className="text-xs text-destructive">{errors.password}</p>
-                  )}
-                </div>
-              </>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              variant="gold"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isSignUp ? "Criando conta..." : "Entrando..."}
                 </>
-              ) : isSignUp ? (
-                "Criar Conta"
-              ) : (
-                "Entrar"
               )}
-            </Button>
-          </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isSignUp ? "Já tem uma conta?" : "Não tem uma conta?"}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  resetForm();
-                }}
-                className="ml-1 text-gold hover:text-gold-dark font-medium"
+              <Button
+                type="submit"
+                className="w-full"
+                variant="gold"
+                disabled={loading}
               >
-                {isSignUp ? "Entrar" : "Cadastrar-se"}
-              </button>
-            </p>
-          </div>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {mode === "signup" ? "Criando conta..." : 
+                     mode === "forgot" ? "Enviando..." :
+                     mode === "reset" ? "Redefinindo..." : "Entrando..."}
+                  </>
+                ) : mode === "signup" ? (
+                  "Criar Conta"
+                ) : mode === "forgot" ? (
+                  "Enviar link de recuperação"
+                ) : mode === "reset" ? (
+                  "Redefinir senha"
+                ) : (
+                  "Entrar"
+                )}
+              </Button>
+            </form>
+          )}
+
+          {(mode === "login" || mode === "signup") && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                {mode === "signup" ? "Já tem uma conta?" : "Não tem uma conta?"}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode(mode === "signup" ? "login" : "signup");
+                    resetForm();
+                  }}
+                  className="ml-1 text-gold hover:text-gold-dark font-medium"
+                >
+                  {mode === "signup" ? "Entrar" : "Cadastrar-se"}
+                </button>
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

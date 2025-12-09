@@ -109,7 +109,7 @@ export function SongDetail({ song, onBack, initialVoice }: SongDetailProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background pb-24 lg:pb-0">
+    <div className="flex flex-col min-h-full bg-background pb-20 lg:pb-0">
       {/* Cabeçalho */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">

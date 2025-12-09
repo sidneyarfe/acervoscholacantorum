@@ -176,7 +176,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
   // Browse Mode - Category Selection
   if (!isSearchMode) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-full">
         <Header title="Buscar" showLogo={false} />
         
         <main className="flex-1 px-4 lg:px-8 py-6 space-y-6">
@@ -230,7 +230,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
 
   // Search/Results Mode
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-full">
       {/* Custom Header with Back Button */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="flex items-center gap-2 px-4 py-3">

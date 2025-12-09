@@ -13,7 +13,7 @@ export function AppLayout({ children, activeTab, onTabChange, isAdmin }: AppLayo
   return (
     <div className="min-h-screen bg-background flex w-full">
       <DesktopSidebar activeTab={activeTab} onTabChange={onTabChange} isAdmin={isAdmin} />
-      <main className="flex-1 min-h-screen lg:pb-0 pb-24">
+      <main className="flex-1 min-h-screen lg:pb-0 pb-16">
         {children}
       </main>
       <div className="lg:hidden">

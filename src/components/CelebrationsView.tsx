@@ -42,7 +42,7 @@ export function CelebrationsView({ onSelectCelebration }: CelebrationsViewProps)
   }, {} as Record<string, typeof celebrations>);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-full">
       <Header title="Celebrações" showLogo={false} />
 
       <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-6 lg:space-y-8">

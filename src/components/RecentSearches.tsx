@@ -22,10 +22,10 @@ export function RecentSearches({ searches, onSearchClick, onRemove, onClear, sho
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-sm font-semibold text-muted-foreground flex items-center gap-2">
-          <Clock className="h-4 w-4" />
+        <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+          <Clock className="h-5 w-5 text-gold" />
           Buscas Recentes
-        </h3>
+        </h2>
         {searches.length > 0 && (
           <Button variant="ghost" size="sm" className="text-xs h-7" onClick={onClear}>
             Limpar

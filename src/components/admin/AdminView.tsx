@@ -29,20 +29,20 @@ export function AdminView() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="songs" className="flex items-center gap-2">
+          <TabsList className="h-auto flex flex-wrap justify-start gap-1 mb-6 p-1">
+            <TabsTrigger value="songs" className="flex items-center gap-2 flex-1 min-w-[80px] sm:flex-none">
               <Music className="h-4 w-4" />
               <span className="hidden sm:inline">Músicas</span>
             </TabsTrigger>
-            <TabsTrigger value="celebrations" className="flex items-center gap-2">
+            <TabsTrigger value="celebrations" className="flex items-center gap-2 flex-1 min-w-[80px] sm:flex-none">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Celebrações</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+            <TabsTrigger value="users" className="flex items-center gap-2 flex-1 min-w-[80px] sm:flex-none">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
             </TabsTrigger>
-            <TabsTrigger value="banners" className="flex items-center gap-2">
+            <TabsTrigger value="banners" className="flex items-center gap-2 flex-1 min-w-[80px] sm:flex-none">
               <Megaphone className="h-4 w-4" />
               <span className="hidden sm:inline">Avisos</span>
             </TabsTrigger>

@@ -51,11 +51,11 @@ export function CelebrationsView({ onSelectCelebration }: CelebrationsViewProps)
           <h2 className="font-display text-lg lg:text-xl font-semibold mb-3 lg:mb-4">
             Tempos Litúrgicos
           </h2>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide lg:flex-wrap">
+          <div className="flex flex-wrap gap-2">
             {LITURGICAL_SEASONS.map((season) => (
               <button
                 key={season}
-                className="px-4 py-3 rounded-xl bg-parchment border border-gold/20 text-sm font-medium whitespace-nowrap hover:border-gold hover:bg-gold/10 transition-all"
+                className="px-4 py-3 rounded-xl bg-parchment border border-gold/20 text-sm font-medium hover:border-gold hover:bg-gold/10 transition-all"
               >
                 {season}
               </button>

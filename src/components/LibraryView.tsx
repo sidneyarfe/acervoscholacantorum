@@ -90,13 +90,13 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
         </div>
 
         {/* Abas de Filtro */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
+        <div className="flex flex-wrap gap-2">
           {FILTER_TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveFilter(tab.id)}
               className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200",
+                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 activeFilter === tab.id
                   ? "bg-gold text-primary-foreground shadow-gold"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -108,12 +108,12 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
         </div>
 
         {/* Chips de Filtro Rápido */}
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
+        <div className="flex flex-wrap gap-2">
           {SONG_CATEGORIES.map((category) => (
             <Badge
               key={category}
               variant={activeFilters.includes(category) ? "gold" : "outline"}
-              className="cursor-pointer whitespace-nowrap"
+              className="cursor-pointer"
               onClick={() =>
                 activeFilters.includes(category)
                   ? removeFilter(category)

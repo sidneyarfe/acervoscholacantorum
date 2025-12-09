@@ -292,6 +292,26 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
               {hasActiveFilters && !searchQuery && filters.tag && ` em ${filters.tag}`}
             </p>
 
+            {/* Songs Section - Always first */}
+            {songResults.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Music className="h-5 w-5 text-gold" />
+                  <h2 className="font-display font-semibold text-lg">Músicas</h2>
+                  <span className="text-sm text-muted-foreground">({songResults.length})</span>
+                </div>
+                <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
+                  {songResults.map((song) => (
+                    <SongCard
+                      key={song.id}
+                      song={song}
+                      onClick={() => onSelectSong(song.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Celebrations Section */}
             {celebrationResults.length > 0 && (
               <section className="space-y-3">
@@ -315,26 +335,6 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
                     +{celebrationResults.length - 6} celebrações
                   </p>
                 )}
-              </section>
-            )}
-
-            {/* Songs Section */}
-            {songResults.length > 0 && (
-              <section className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Music className="h-5 w-5 text-gold" />
-                  <h2 className="font-display font-semibold text-lg">Músicas</h2>
-                  <span className="text-sm text-muted-foreground">({songResults.length})</span>
-                </div>
-                <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
-                  {songResults.map((song) => (
-                    <SongCard
-                      key={song.id}
-                      song={song}
-                      onClick={() => onSelectSong(song.id)}
-                    />
-                  ))}
-                </div>
               </section>
             )}
           </>

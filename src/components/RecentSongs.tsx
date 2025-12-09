@@ -1,4 +1,4 @@
-import { Clock, Trash2 } from "lucide-react";
+import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SongCard } from "@/components/SongCard";
 import { useSongs } from "@/hooks/useSongs";
@@ -54,22 +54,11 @@ export function RecentSongs({
       {recentSongsWithSearch.length > 0 ? (
         <div className="space-y-3">
           {recentSongsWithSearch.map(({ song, searchId }) => (
-            <div key={searchId} className="relative group">
-              <SongCard
-                song={song}
-                onClick={() => onSelectSong(song.id)}
-              />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(searchId);
-                }}
-                className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                title="Remover"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+            <SongCard
+              key={searchId}
+              song={song}
+              onClick={() => onSelectSong(song.id)}
+            />
           ))}
         </div>
       ) : (

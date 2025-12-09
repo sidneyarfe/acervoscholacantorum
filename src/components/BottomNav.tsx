@@ -1,4 +1,4 @@
-import { Search, Home, Library, Calendar, User, Shield, ListMusic } from "lucide-react";
+import { Search, Home, Library, Calendar, User, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
@@ -10,7 +10,6 @@ interface BottomNavProps {
 const navItems = [
   { id: "home", label: "Início", icon: Home },
   { id: "library", label: "Repertório", icon: Library },
-  { id: "rehearsals", label: "Ensaios", icon: ListMusic },
   { id: "calendar", label: "Celebrações", icon: Calendar },
   { id: "profile", label: "Perfil", icon: User },
 ];

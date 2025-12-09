@@ -4,14 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Music2, Calendar, Clock, ChevronRight, BookOpen, Headphones, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { VoicePartSelector } from "@/components/VoicePartSelector";
-import { SongCard } from "@/components/SongCard";
 import { CelebrationCard } from "@/components/CelebrationCard";
 import { BannerCarousel } from "@/components/BannerCarousel";
+import { RecentSearches } from "@/components/RecentSearches";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useProfile } from "@/hooks/useProfile";
 import { useAudioCount } from "@/hooks/useAudioCount";
-import { useSongsAudioParts } from "@/hooks/useSongAudioParts";
+import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useToast } from "@/hooks/use-toast";
 
 interface HomeViewProps {
@@ -34,11 +34,9 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
   const { data: celebrations, isLoading: loadingCelebrations } = useCelebrations();
   const { data: profile } = useProfile();
   const { data: audioCount } = useAudioCount();
+  const { recentSearches, removeSearch, clearSearches } = useRecentSearches();
   const { toast } = useToast();
 
-  const recentSongs = songs?.slice(0, 4) || [];
-  const songIds = recentSongs.map(s => s.id);
-  const { data: songsAudioParts } = useSongsAudioParts(songIds);
   const upcomingCelebrations = celebrations?.slice(0, 2) || [];
 
   // Apenas seleção local para navegação - não salva no perfil
@@ -49,6 +47,11 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
       title: "Naipe selecionado",
       description: `Áudios de ${voiceId === 'soprano' ? 'Soprano' : voiceId === 'contralto' ? 'Contralto' : voiceId === 'tenor' ? 'Tenor' : 'Baixo'} serão priorizados.`,
     });
+  };
+
+  const handleRecentSearchClick = (query: string) => {
+    // Navigate to search with the query
+    onNavigate("search");
   };
 
   return (
@@ -112,34 +115,14 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
                 </p>
               </section>
 
-              {/* Músicas Recentes */}
+              {/* Buscas Recentes */}
               <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display text-lg lg:text-xl font-semibold flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-gold" />
-                    Músicas do Acervo
-                  </h2>
-                  <Button variant="ghost" size="sm" className="text-gold" onClick={() => onNavigate("library")}>
-                    Ver todos
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
-                {loadingSongs ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-gold" />
-                  </div>
-                ) : (
-                  <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                    {recentSongs.map((song) => (
-                      <SongCard 
-                        key={song.id} 
-                        song={song} 
-                        onClick={() => onSelectSong(song.id)}
-                        audioVoices={songsAudioParts?.[song.id] || []}
-                      />
-                    ))}
-                  </div>
-                )}
+                <RecentSearches
+                  searches={recentSearches}
+                  onSearchClick={handleRecentSearchClick}
+                  onRemove={removeSearch}
+                  onClear={clearSearches}
+                />
               </section>
             </div>
 

@@ -5,72 +5,65 @@ import { SongCard } from "@/components/SongCard";
 import { Badge } from "@/components/ui/badge";
 import { useSongs } from "@/hooks/useSongs";
 import { useSongsAudioParts } from "@/hooks/useSongAudioParts";
-import { cn } from "@/lib/utils";
+import { useSongTags } from "@/hooks/useSongOptions";
 import { Loader2 } from "lucide-react";
 
 interface LibraryViewProps {
   onSelectSong: (songId: string) => void;
 }
 
-const FILTER_TABS = [
-  { id: "all", label: "Todos" },
-  { id: "polyphonic", label: "SATB" },
-  { id: "gregorian", label: "Gregoriano" },
-  { id: "unison", label: "Uníssono" },
-];
-
-const SONG_CATEGORIES = [
-  "Comunhão",
-  "Entrada",
-  "Ofertório",
-  "Ordinário",
-  "Mariano",
-];
-
 export function LibraryView({ onSelectSong }: LibraryViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const { data: songs, isLoading } = useSongs();
+  const { data: tags = [] } = useSongTags();
   const songIds = useMemo(() => songs?.map(s => s.id) || [], [songs]);
   const { data: songsAudioParts } = useSongsAudioParts(songIds);
+
+  // Calculate tag counts based on songs
+  const tagCounts = useMemo(() => {
+    if (!songs) return {};
+    const counts: Record<string, number> = {};
+    songs.forEach((song) => {
+      const songTags = Array.isArray(song.liturgical_tags) ? song.liturgical_tags as string[] : [];
+      songTags.forEach((tag) => {
+        counts[tag] = (counts[tag] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [songs]);
+
+  // Get top tags sorted by count
+  const topTags = useMemo(() => {
+    return tags
+      .filter((tag) => tagCounts[tag.name] > 0)
+      .sort((a, b) => (tagCounts[b.name] || 0) - (tagCounts[a.name] || 0))
+      .slice(0, 8);
+  }, [tags, tagCounts]);
 
   const filteredSongs = useMemo(() => {
     if (!songs) return [];
 
     return songs.filter((song) => {
-      // Filtro de busca
+      // Search filter
       const matchesSearch =
         !searchQuery ||
         song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (song.composer && song.composer.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      // Filtro de tipo de vozes
-      const matchesVoicing =
-        activeFilter === "all" || song.voicing_type === activeFilter;
-
-      // Filtros adicionais (liturgical_tags)
+      // Tag filter
       const liturgicalTags = Array.isArray(song.liturgical_tags) 
         ? song.liturgical_tags as string[]
         : [];
-      
-      const matchesFilters =
-        activeFilters.length === 0 ||
-        activeFilters.some((filter) => liturgicalTags.includes(filter));
+      const matchesTag = !selectedTag || liturgicalTags.includes(selectedTag);
 
-      return matchesSearch && matchesVoicing && matchesFilters;
+      return matchesSearch && matchesTag;
     });
-  }, [songs, searchQuery, activeFilter, activeFilters]);
+  }, [songs, searchQuery, selectedTag]);
 
-  const removeFilter = (filter: string) => {
-    setActiveFilters((prev) => prev.filter((f) => f !== filter));
-  };
-
-  const addFilter = (filter: string) => {
-    if (!activeFilters.includes(filter)) {
-      setActiveFilters((prev) => [...prev, filter]);
-    }
+  const handleTagClick = (tagName: string) => {
+    setSelectedTag(selectedTag === tagName ? null : tagName);
   };
 
   return (
@@ -78,61 +71,52 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
       <Header title="Repertório" showLogo={false} />
 
       <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6">
-        {/* Busca */}
+        {/* Search */}
         <div className="lg:max-w-2xl">
           <SearchBar
             value={searchQuery}
             onChange={setSearchQuery}
             onClear={() => setSearchQuery("")}
-            filters={activeFilters}
-            onRemoveFilter={removeFilter}
+            placeholder="Buscar músicas..."
           />
         </div>
 
-        {/* Abas de Filtro */}
-        <div className="flex flex-wrap gap-2">
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveFilter(tab.id)}
-              className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                activeFilter === tab.id
-                  ? "bg-gold text-primary-foreground shadow-gold"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Tag Selector */}
+        {topTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {topTags.map((tag) => (
+              <Badge
+                key={tag.id}
+                variant={selectedTag === tag.name ? "gold" : "outline"}
+                className="cursor-pointer"
+                onClick={() => handleTagClick(tag.name)}
+              >
+                {tag.name}
+                <span className="ml-1 text-xs opacity-70">
+                  ({tagCounts[tag.name] || 0})
+                </span>
+              </Badge>
+            ))}
+          </div>
+        )}
 
-        {/* Chips de Filtro Rápido */}
-        <div className="flex flex-wrap gap-2">
-          {SONG_CATEGORIES.map((category) => (
-            <Badge
-              key={category}
-              variant={activeFilters.includes(category) ? "gold" : "outline"}
-              className="cursor-pointer"
-              onClick={() =>
-                activeFilters.includes(category)
-                  ? removeFilter(category)
-                  : addFilter(category)
-              }
-            >
-              {category}
-            </Badge>
-          ))}
-        </div>
-
-        {/* Contagem de Resultados */}
+        {/* Results Count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {filteredSongs.length} música{filteredSongs.length !== 1 && "s"}
+            {selectedTag && ` em "${selectedTag}"`}
           </p>
+          {selectedTag && (
+            <button
+              onClick={() => setSelectedTag(null)}
+              className="text-sm text-gold hover:underline"
+            >
+              Limpar filtro
+            </button>
+          )}
         </div>
 
-        {/* Lista de Músicas - Grid em Desktop */}
+        {/* Song List */}
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gold" />
@@ -154,7 +138,7 @@ export function LibraryView({ onSelectSong }: LibraryViewProps) {
                   Nenhuma música encontrada
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Tente ajustar os filtros
+                  Tente ajustar a busca ou os filtros
                 </p>
               </div>
             )}

@@ -12,6 +12,7 @@ interface SearchBarProps {
   filters?: string[];
   onRemoveFilter?: (filter: string) => void;
   onOpenFilters?: () => void;
+  onSubmit?: (value: string) => void;
 }
 
 export function SearchBar({
@@ -22,7 +23,14 @@ export function SearchBar({
   filters = [],
   onRemoveFilter,
   onOpenFilters,
+  onSubmit,
 }: SearchBarProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && value.trim() && onSubmit) {
+      onSubmit(value.trim());
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -31,6 +39,7 @@ export function SearchBar({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={cn(
             "pl-10 pr-20 h-12 rounded-xl border-border bg-card",

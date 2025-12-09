@@ -5,10 +5,12 @@ import { SongCard } from "@/components/SongCard";
 import { CelebrationCard } from "@/components/CelebrationCard";
 import { SearchFiltersSheet } from "@/components/SearchFiltersSheet";
 import { SearchFiltersState } from "@/components/SearchFilters";
+import { RecentSearches } from "@/components/RecentSearches";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrationSongs } from "@/hooks/useSongCelebrations";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useSongTags } from "@/hooks/useSongOptions";
+import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { Loader2, ArrowLeft, Search, Music, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +64,7 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
   const { data: songs, isLoading: songsLoading } = useSongs();
   const { data: celebrations = [], isLoading: celebrationsLoading } = useCelebrations();
   const { data: tags = [], isLoading: tagsLoading } = useSongTags();
+  const { recentSearches, addSearch, removeSearch, clearSearches } = useRecentSearches();
   
   const { data: celebrationSongs } = useCelebrationSongs(filters.celebration);
   const celebrationSongIds = useMemo(() => 
@@ -112,6 +115,17 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
   };
 
   const handleSearchFocus = () => {
+    setIsSearchMode(true);
+  };
+
+  const handleSearchSubmit = (query: string) => {
+    if (query.trim()) {
+      addSearch(query.trim());
+    }
+  };
+
+  const handleRecentSearchClick = (query: string) => {
+    setSearchQuery(query);
     setIsSearchMode(true);
   };
 
@@ -201,6 +215,14 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
             <span className="text-muted-foreground">Buscar músicas ou celebrações...</span>
           </button>
 
+          {/* Recent Searches */}
+          <RecentSearches
+            searches={recentSearches}
+            onSearchClick={handleRecentSearchClick}
+            onRemove={removeSearch}
+            onClear={clearSearches}
+          />
+
           <div className="space-y-4">
             <h2 className="font-display text-xl font-semibold">Explorar por Categoria</h2>
             {tagsLoading ? (
@@ -261,17 +283,31 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
               filters={activeFilterLabels}
               onRemoveFilter={handleRemoveFilter}
               onOpenFilters={() => setFiltersOpen(true)}
+              onSubmit={handleSearchSubmit}
             />
           </div>
         </div>
       </header>
 
       <main className="flex-1 px-4 lg:px-8 py-4 space-y-6">
+        {/* Recent Searches - show when no query */}
+        {!searchQuery && !hasActiveFilters && (
+          <RecentSearches
+            searches={recentSearches}
+            onSearchClick={(query) => {
+              setSearchQuery(query);
+              addSearch(query);
+            }}
+            onRemove={removeSearch}
+            onClear={clearSearches}
+          />
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gold" />
           </div>
-        ) : !hasResults ? (
+        ) : !hasResults && (searchQuery || hasActiveFilters) ? (
           <div className="text-center py-12">
             <p className="text-4xl mb-4">🔍</p>
             <p className="text-muted-foreground">
@@ -283,7 +319,7 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
               </p>
             )}
           </div>
-        ) : (
+        ) : hasResults ? (
           <>
             {/* Results summary */}
             <p className="text-sm text-muted-foreground">
@@ -338,7 +374,7 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
               </section>
             )}
           </>
-        )}
+        ) : null}
       </main>
 
       <SearchFiltersSheet

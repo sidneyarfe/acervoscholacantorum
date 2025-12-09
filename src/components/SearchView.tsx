@@ -127,6 +127,7 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
   const handleRecentSearchClick = (query: string) => {
     setSearchQuery(query);
     setIsSearchMode(true);
+    addSearch(query);
   };
 
   // Song search results
@@ -221,6 +222,7 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
             onSearchClick={handleRecentSearchClick}
             onRemove={removeSearch}
             onClear={clearSearches}
+            showEmpty={true}
           />
 
           <div className="space-y-4">
@@ -290,16 +292,14 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
       </header>
 
       <main className="flex-1 px-4 lg:px-8 py-4 space-y-6">
-        {/* Recent Searches - show when no query */}
+        {/* Recent Searches - show when no query and no active filters */}
         {!searchQuery && !hasActiveFilters && (
           <RecentSearches
             searches={recentSearches}
-            onSearchClick={(query) => {
-              setSearchQuery(query);
-              addSearch(query);
-            }}
+            onSearchClick={handleRecentSearchClick}
             onRemove={removeSearch}
             onClear={clearSearches}
+            showEmpty={true}
           />
         )}
 

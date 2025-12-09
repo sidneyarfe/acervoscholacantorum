@@ -22,13 +22,6 @@ interface HomeViewProps {
   onSelectCelebration: (celebrationId: string) => void;
 }
 
-const LITURGICAL_RANK_LABELS: Record<string, string> = {
-  solemnity: "SOLENIDADE",
-  feast: "FESTA",
-  memorial: "MEMORIAL",
-  optional_memorial: "MEMORIAL OPCIONAL",
-};
-
 export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSong, onSelectCelebration }: HomeViewProps) {
   const { data: songs, isLoading: loadingSongs } = useSongs();
   const { data: celebrations, isLoading: loadingCelebrations } = useCelebrations();
@@ -39,8 +32,6 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
 
   const upcomingCelebrations = celebrations?.slice(0, 2) || [];
 
-  // Apenas seleção local para navegação - não salva no perfil
-  // Naipe no perfil só pode ser alterado pelo admin
   const handleVoiceSelect = (voiceId: string) => {
     onSelectVoice(voiceId);
     toast({
@@ -50,7 +41,6 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
   };
 
   const handleRecentSearchClick = (query: string) => {
-    // Navigate to search with the query
     onNavigate("search");
   };
 
@@ -116,14 +106,13 @@ export function HomeView({ selectedVoice, onSelectVoice, onNavigate, onSelectSon
               </section>
 
               {/* Buscas Recentes */}
-              <section>
-                <RecentSearches
-                  searches={recentSearches}
-                  onSearchClick={handleRecentSearchClick}
-                  onRemove={removeSearch}
-                  onClear={clearSearches}
-                />
-              </section>
+              <RecentSearches
+                searches={recentSearches}
+                onSearchClick={handleRecentSearchClick}
+                onRemove={removeSearch}
+                onClear={clearSearches}
+                showEmpty={true}
+              />
             </div>
 
             {/* Coluna Lateral - Desktop */}

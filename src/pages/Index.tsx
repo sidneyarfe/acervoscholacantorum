@@ -76,7 +76,7 @@ const Index = () => {
       case "library":
         return <LibraryView onSelectSong={handleSelectSong} />;
       case "search":
-        return <SearchView onSelectSong={handleSelectSong} />;
+        return <SearchView onSelectSong={handleSelectSong} onSelectCelebration={handleSelectCelebration} />;
       case "calendar":
         return <CelebrationsView onSelectCelebration={handleSelectCelebration} />;
       case "profile":

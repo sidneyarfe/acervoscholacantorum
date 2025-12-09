@@ -2,18 +2,21 @@ import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { SearchBar } from "@/components/SearchBar";
 import { SongCard } from "@/components/SongCard";
+import { CelebrationCard } from "@/components/CelebrationCard";
 import { SearchFiltersSheet } from "@/components/SearchFiltersSheet";
 import { SearchFiltersState } from "@/components/SearchFilters";
 import { useSongs } from "@/hooks/useSongs";
 import { useCelebrationSongs } from "@/hooks/useSongCelebrations";
 import { useCelebrations } from "@/hooks/useCelebrations";
 import { useSongTags } from "@/hooks/useSongOptions";
-import { Loader2, ArrowLeft, Search } from "lucide-react";
+import { Loader2, ArrowLeft, Search, Music, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SearchViewProps {
   onSelectSong: (songId: string) => void;
+  onSelectCelebration?: (celebrationId: string) => void;
 }
 
 // Helper function to get icon and gradient for a tag
@@ -58,13 +61,17 @@ const emptyFilters: SearchFiltersState = {
   texture: null,
 };
 
-export function SearchView({ onSelectSong }: SearchViewProps) {
+type SearchType = "songs" | "celebrations";
+
+export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<SearchFiltersState>(emptyFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  const { data: songs, isLoading } = useSongs();
-  const { data: celebrations = [] } = useCelebrations();
+  const [searchType, setSearchType] = useState<SearchType>("songs");
+  
+  const { data: songs, isLoading: songsLoading } = useSongs();
+  const { data: celebrations = [], isLoading: celebrationsLoading } = useCelebrations();
   const { data: tags = [], isLoading: tagsLoading } = useSongTags();
   
   const { data: celebrationSongs } = useCelebrationSongs(filters.celebration);
@@ -107,6 +114,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
 
   const handleCategoryClick = (tag: string) => {
     setFilters({ ...emptyFilters, tag });
+    setSearchType("songs");
     setIsSearchMode(true);
   };
 
@@ -120,7 +128,8 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
     setIsSearchMode(true);
   };
 
-  const searchResults = useMemo(() => {
+  // Song search results
+  const songResults = useMemo(() => {
     if (!songs) return [];
 
     let filtered = [...songs];
@@ -173,6 +182,22 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
     return filtered;
   }, [searchQuery, songs, filters, celebrationSongIds]);
 
+  // Celebration search results
+  const celebrationResults = useMemo(() => {
+    if (!celebrations) return [];
+    if (!searchQuery.trim()) return celebrations;
+
+    const query = searchQuery.toLowerCase();
+    return celebrations.filter((celebration) =>
+      celebration.name.toLowerCase().includes(query) ||
+      celebration.description?.toLowerCase().includes(query) ||
+      celebration.feast_type?.toLowerCase().includes(query) ||
+      celebration.liturgical_season?.toLowerCase().includes(query)
+    );
+  }, [searchQuery, celebrations]);
+
+  const isLoading = searchType === "songs" ? songsLoading : celebrationsLoading;
+
   // Browse Mode - Category Selection
   if (!isSearchMode) {
     return (
@@ -186,7 +211,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border hover:border-gold/50 transition-colors text-left"
           >
             <Search className="h-5 w-5 text-muted-foreground" />
-            <span className="text-muted-foreground">Buscar músicas, compositores...</span>
+            <span className="text-muted-foreground">Buscar músicas ou celebrações...</span>
           </button>
 
           {/* Category Grid - Dynamic from Database */}
@@ -247,12 +272,28 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
               value={searchQuery}
               onChange={setSearchQuery}
               onClear={() => setSearchQuery("")}
-              placeholder="Buscar músicas..."
-              filters={activeFilterLabels}
+              placeholder={searchType === "songs" ? "Buscar músicas..." : "Buscar celebrações..."}
+              filters={searchType === "songs" ? activeFilterLabels : []}
               onRemoveFilter={handleRemoveFilter}
-              onOpenFilters={() => setFiltersOpen(true)}
+              onOpenFilters={searchType === "songs" ? () => setFiltersOpen(true) : undefined}
             />
           </div>
+        </div>
+
+        {/* Search Type Tabs */}
+        <div className="px-4 pb-3">
+          <Tabs value={searchType} onValueChange={(v) => setSearchType(v as SearchType)}>
+            <TabsList className="w-full">
+              <TabsTrigger value="songs" className="flex-1 gap-2">
+                <Music className="h-4 w-4" />
+                Músicas
+              </TabsTrigger>
+              <TabsTrigger value="celebrations" className="flex-1 gap-2">
+                <Calendar className="h-4 w-4" />
+                Celebrações
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </header>
 
@@ -261,18 +302,18 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-gold" />
           </div>
-        ) : (
+        ) : searchType === "songs" ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              {searchResults.length} resultado
-              {searchResults.length !== 1 && "s"}
+              {songResults.length} resultado
+              {songResults.length !== 1 && "s"}
               {searchQuery && ` para "${searchQuery}"`}
               {hasActiveFilters && !searchQuery && filters.tag && ` em ${filters.tag}`}
             </p>
 
-            {searchResults.length > 0 ? (
+            {songResults.length > 0 ? (
               <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
-                {searchResults.map((song) => (
+                {songResults.map((song) => (
                   <SongCard
                     key={song.id}
                     song={song}
@@ -284,7 +325,7 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
               <div className="text-center py-12">
                 <p className="text-4xl mb-4">🔍</p>
                 <p className="text-muted-foreground">
-                  Nenhum resultado encontrado
+                  Nenhuma música encontrada
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Tente outras palavras-chave ou ajuste os filtros
@@ -292,16 +333,49 @@ export function SearchView({ onSelectSong }: SearchViewProps) {
               </div>
             )}
           </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {celebrationResults.length} resultado
+              {celebrationResults.length !== 1 && "s"}
+              {searchQuery && ` para "${searchQuery}"`}
+            </p>
+
+            {celebrationResults.length > 0 ? (
+              <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
+                {celebrationResults.map((celebration) => (
+                  <CelebrationCard
+                    key={celebration.id}
+                    celebration={celebration}
+                    onClick={() => onSelectCelebration?.(celebration.id)}
+                    showArrow
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-4xl mb-4">🔍</p>
+                <p className="text-muted-foreground">
+                  Nenhuma celebração encontrada
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Tente outras palavras-chave
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </main>
 
-      <SearchFiltersSheet
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        filters={filters}
-        onFiltersChange={setFilters}
-        onClearFilters={() => setFilters(emptyFilters)}
-      />
+      {searchType === "songs" && (
+        <SearchFiltersSheet
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          filters={filters}
+          onFiltersChange={setFilters}
+          onClearFilters={() => setFilters(emptyFilters)}
+        />
+      )}
     </div>
   );
 }

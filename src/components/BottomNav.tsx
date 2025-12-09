@@ -10,6 +10,7 @@ interface BottomNavProps {
 const navItems = [
   { id: "home", label: "Início", icon: Home },
   { id: "library", label: "Repertório", icon: Library },
+  { id: "search", label: "Buscar", icon: Search },
   { id: "calendar", label: "Celebrações", icon: Calendar },
   { id: "profile", label: "Perfil", icon: User },
 ];

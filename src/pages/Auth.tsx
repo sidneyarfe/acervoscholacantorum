@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import scholaLogo from "@/assets/schola-logo.png";
 
 // Funções de formatação
@@ -71,15 +70,7 @@ const signUpSchema = z.object({
   joinDate: z.string().min(1, "Informe a data de entrada"),
 });
 
-const resetPasswordSchema = z.object({
-  newPassword: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
-
-type FormErrors = Partial<Record<keyof z.infer<typeof signUpSchema> | "newPassword" | "confirmPassword", string>>;
+type FormErrors = Partial<Record<keyof z.infer<typeof signUpSchema>, string>>;
 
 const voiceOptions = [
   { value: "soprano", label: "Soprano" },
@@ -88,7 +79,7 @@ const voiceOptions = [
   { value: "baixo", label: "Baixo" },
 ];
 
-type AuthMode = "login" | "signup" | "forgot" | "reset";
+type AuthMode = "login" | "signup" | "forgot";
 
 export default function Auth() {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -108,30 +99,16 @@ export default function Auth() {
   const [joinDate, setJoinDate] = useState("");
   const [hasStole, setHasStole] = useState(false);
   const [hasVestment, setHasVestment] = useState(false);
-  
-  // Campos de reset de senha
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const { signUp, signIn, user, resetPassword, updatePassword } = useAuth();
+  const { signUp, signIn, user, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Detectar evento de recuperação de senha
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setMode("reset");
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
-    if (user && mode !== "reset") {
+    if (user) {
       navigate("/");
     }
-  }, [user, navigate, mode]);
+  }, [user, navigate]);
 
   const validateForm = () => {
     try {
@@ -139,8 +116,6 @@ export default function Auth() {
         signUpSchema.parse({ 
           email, password, fullName, cpf, phone, address, preferredVoice, joinDate 
         });
-      } else if (mode === "reset") {
-        resetPasswordSchema.parse({ newPassword, confirmPassword });
       } else if (mode === "forgot") {
         z.string().email("Email inválido").parse(email);
       } else {
@@ -215,22 +190,6 @@ export default function Auth() {
         } else {
           setRecoveryEmailSent(true);
         }
-      } else if (mode === "reset") {
-        const { error } = await updatePassword(newPassword);
-        
-        if (error) {
-          toast({
-            title: "Erro ao redefinir senha",
-            description: error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Senha alterada!",
-            description: "Sua senha foi redefinida com sucesso.",
-          });
-          navigate("/");
-        }
       } else {
         const { error } = await signIn(email, password);
         
@@ -274,8 +233,6 @@ export default function Auth() {
     setJoinDate("");
     setHasStole(false);
     setHasVestment(false);
-    setNewPassword("");
-    setConfirmPassword("");
     setErrors({});
     setRecoveryEmailSent(false);
   };
@@ -284,7 +241,6 @@ export default function Auth() {
     switch (mode) {
       case "signup": return "Criar Conta";
       case "forgot": return "Recuperar Senha";
-      case "reset": return "Redefinir Senha";
       default: return "Entrar";
     }
   };
@@ -293,7 +249,6 @@ export default function Auth() {
     switch (mode) {
       case "signup": return "Preencha seus dados para acessar o acervo musical";
       case "forgot": return "Informe seu email para receber o link de recuperação";
-      case "reset": return "Digite sua nova senha";
       default: return "Entre com suas credenciais";
     }
   };
@@ -311,7 +266,7 @@ export default function Auth() {
 
       <Card className="w-full max-w-md" variant="elevated">
         <CardHeader className="text-center pb-2">
-          {(mode === "forgot" || mode === "reset") && (
+          {mode === "forgot" && (
             <button
               type="button"
               onClick={() => {
@@ -594,54 +549,6 @@ export default function Auth() {
                     )}
                   </div>
                 </>
-              ) : mode === "reset" ? (
-                <>
-                  {/* Formulário de Reset */}
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">Nova Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="newPassword"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Mínimo 6 caracteres"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="pl-10 pr-10"
-                        disabled={loading}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    {errors.newPassword && (
-                      <p className="text-xs text-destructive">{errors.newPassword}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="confirmPassword"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Repita a senha"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="pl-10"
-                        disabled={loading}
-                      />
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className="text-xs text-destructive">{errors.confirmPassword}</p>
-                    )}
-                  </div>
-                </>
               ) : (
                 <>
                   {/* Login simples */}
@@ -716,15 +623,12 @@ export default function Auth() {
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {mode === "signup" ? "Criando conta..." : 
-                     mode === "forgot" ? "Enviando..." :
-                     mode === "reset" ? "Redefinindo..." : "Entrando..."}
+                     mode === "forgot" ? "Enviando..." : "Entrando..."}
                   </>
                 ) : mode === "signup" ? (
                   "Criar Conta"
                 ) : mode === "forgot" ? (
                   "Enviar link de recuperação"
-                ) : mode === "reset" ? (
-                  "Redefinir senha"
                 ) : (
                   "Entrar"
                 )}

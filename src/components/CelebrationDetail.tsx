@@ -91,7 +91,7 @@ export function CelebrationDetail({ celebrationId, onBack, onSelectSong }: Celeb
 
   if (!celebration) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-full">
         <Header title="Celebração" showLogo={false} />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-gold" />
@@ -101,7 +101,7 @@ export function CelebrationDetail({ celebrationId, onBack, onSelectSong }: Celeb
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-full">
       <Header title={celebration.name} showLogo={false} />
 
       <main className="flex-1 px-4 lg:px-8 py-4 lg:py-6 space-y-6">

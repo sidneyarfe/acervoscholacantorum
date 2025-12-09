@@ -10,7 +10,7 @@ export function AdminView() {
   const [activeTab, setActiveTab] = useState("songs");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-full bg-background">
       <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">

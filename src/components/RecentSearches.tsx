@@ -13,10 +13,11 @@ interface RecentSearchesProps {
   onSearchClick: (query: string) => void;
   onRemove: (id: string) => void;
   onClear: () => void;
+  showEmpty?: boolean;
 }
 
-export function RecentSearches({ searches, onSearchClick, onRemove, onClear }: RecentSearchesProps) {
-  if (searches.length === 0) return null;
+export function RecentSearches({ searches, onSearchClick, onRemove, onClear, showEmpty = false }: RecentSearchesProps) {
+  if (searches.length === 0 && !showEmpty) return null;
 
   return (
     <section className="space-y-3">
@@ -25,34 +26,40 @@ export function RecentSearches({ searches, onSearchClick, onRemove, onClear }: R
           <Clock className="h-4 w-4" />
           Buscas Recentes
         </h3>
-        <Button variant="ghost" size="sm" className="text-xs h-7" onClick={onClear}>
-          Limpar
-        </Button>
+        {searches.length > 0 && (
+          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={onClear}>
+            Limpar
+          </Button>
+        )}
       </div>
-      <div className="flex flex-wrap gap-2">
-        {searches.map((search) => (
-          <div
-            key={search.id}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-muted/50 text-sm group"
-          >
-            <button
-              onClick={() => onSearchClick(search.query)}
-              className="hover:text-foreground transition-colors"
+      {searches.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {searches.map((search) => (
+            <div
+              key={search.id}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-muted/50 text-sm group"
             >
-              {search.query}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(search.id);
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-destructive"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
-      </div>
+              <button
+                onClick={() => onSearchClick(search.query)}
+                className="hover:text-foreground transition-colors"
+              >
+                {search.query}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(search.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nenhuma busca recente</p>
+      )}
     </section>
   );
 }

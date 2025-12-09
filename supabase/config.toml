@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.upload-banner-image]
 verify_jwt = true
+
+[functions.rename-drive-folder]
+verify_jwt = false

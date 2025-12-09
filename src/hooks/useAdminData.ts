@@ -74,6 +74,13 @@ export function useUpdateSong() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: TablesUpdate<"songs"> & { id: string }) => {
+      // Buscar dados atuais da música para verificar se título/compositor mudaram
+      const { data: currentSong } = await supabase
+        .from("songs")
+        .select("title, composer, drive_folder_id")
+        .eq("id", id)
+        .single();
+
       const { data, error } = await supabase
         .from("songs")
         .update(updates)
@@ -81,6 +88,37 @@ export function useUpdateSong() {
         .select()
         .single();
       if (error) throw error;
+
+      // Se título ou compositor mudaram e existe pasta no Drive, renomear
+      if (
+        currentSong?.drive_folder_id &&
+        (updates.title !== currentSong.title || updates.composer !== currentSong.composer)
+      ) {
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rename-drive-folder`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              },
+              body: JSON.stringify({
+                folderId: currentSong.drive_folder_id,
+                title: updates.title || currentSong.title,
+                composer: updates.composer ?? currentSong.composer,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            console.error("Erro ao renomear pasta no Drive:", await response.text());
+          }
+        } catch (e) {
+          console.error("Erro ao renomear pasta no Drive:", e);
+        }
+      }
+
       return data;
     },
     onSuccess: () => {

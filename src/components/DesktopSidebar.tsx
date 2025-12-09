@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Home, Library, Search, Calendar, User, ChevronLeft, ChevronRight, Shield } from "lucide-react";
+import { Home, Library, Search, Calendar, User, ChevronLeft, ChevronRight, Shield, ListMusic } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import scholaLogo from "@/assets/schola-logo.png";
@@ -14,6 +14,7 @@ const navItems = [
   { id: "home", label: "Início", icon: Home },
   { id: "library", label: "Repertório", icon: Library },
   { id: "search", label: "Buscar", icon: Search },
+  { id: "rehearsals", label: "Ensaios", icon: ListMusic },
   { id: "calendar", label: "Celebrações", icon: Calendar },
   { id: "profile", label: "Perfil", icon: User },
 ];

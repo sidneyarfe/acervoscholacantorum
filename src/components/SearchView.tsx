@@ -342,9 +342,8 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
                       key={song.id}
                       song={song}
                       onClick={() => {
-                        if (searchQuery.trim()) {
-                          addSearch(searchQuery.trim());
-                        }
+                        const searchTerm = searchQuery.trim() || song.title;
+                        addSearch(searchTerm, "song");
                         onSelectSong(song.id);
                       }}
                     />
@@ -367,9 +366,8 @@ export function SearchView({ onSelectSong, onSelectCelebration }: SearchViewProp
                       key={celebration.id}
                       celebration={celebration}
                       onClick={() => {
-                        if (searchQuery.trim()) {
-                          addSearch(searchQuery.trim());
-                        }
+                        const searchTerm = searchQuery.trim() || celebration.name;
+                        addSearch(searchTerm, "celebration");
                         onSelectCelebration?.(celebration.id);
                       }}
                       showArrow

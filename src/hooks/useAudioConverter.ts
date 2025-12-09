@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { fetchFile } from "@ffmpeg/util";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 interface ConversionProgress {
   progress: number;
@@ -84,11 +84,17 @@ export function useAudioConverter(): UseAudioConverterReturn {
       message: "Carregando conversor...",
     });
 
-    // Load single-threaded core (no COOP/COEP required)
-    await ffmpeg.load({
-      coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
-      wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm",
-    });
+    // Load single-threaded core using toBlobURL to avoid CORS issues
+    const baseURL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd";
+    
+    console.log("[AudioConverter] Loading FFmpeg core from jsdelivr...");
+    
+    const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript");
+    const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm");
+    
+    console.log("[AudioConverter] Core files loaded, initializing FFmpeg...");
+    
+    await ffmpeg.load({ coreURL, wasmURL });
 
     ffmpegRef.current = ffmpeg;
     return ffmpeg;

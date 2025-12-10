@@ -208,6 +208,9 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          approval_status: Database["public"]["Enums"]["approval_status"]
+          approved_at: string | null
+          approved_by: string | null
           avatar_url: string | null
           cpf: string | null
           created_at: string
@@ -220,10 +223,14 @@ export type Database = {
           join_date: string | null
           phone: string | null
           preferred_voice: Database["public"]["Enums"]["voice_part"] | null
+          rejection_reason: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -236,10 +243,14 @@ export type Database = {
           join_date?: string | null
           phone?: string | null
           preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
+          rejection_reason?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -252,6 +263,7 @@ export type Database = {
           join_date?: string | null
           phone?: string | null
           preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
+          rejection_reason?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -630,6 +642,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "member"
+      approval_status: "pending" | "approved" | "rejected"
       liturgical_rank: "solemnity" | "feast" | "memorial" | "optional_memorial"
       voice_part: "soprano" | "contralto" | "tenor" | "baixo"
       voicing_type: "unison" | "polyphonic" | "gregorian"
@@ -761,6 +774,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "member"],
+      approval_status: ["pending", "approved", "rejected"],
       liturgical_rank: ["solemnity", "feast", "memorial", "optional_memorial"],
       voice_part: ["soprano", "contralto", "tenor", "baixo"],
       voicing_type: ["unison", "polyphonic", "gregorian"],

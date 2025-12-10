@@ -13,15 +13,20 @@ interface SignUpData {
   hasVestment: boolean;
 }
 
+export type ApprovalStatus = "pending" | "approved" | "rejected" | null;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  approvalStatus: ApprovalStatus;
+  rejectionReason: string | null;
   signUp: (email: string, password: string, data: SignUpData) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; approvalStatus?: ApprovalStatus; rejectionReason?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
+  checkApprovalStatus: () => Promise<ApprovalStatus>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +35,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+
+  const fetchApprovalStatus = async (userId: string): Promise<{ status: ApprovalStatus; reason: string | null }> => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("approval_status, rejection_reason")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error || !data) {
+        return { status: null, reason: null };
+      }
+
+      return { 
+        status: data.approval_status as ApprovalStatus, 
+        reason: data.rejection_reason 
+      };
+    } catch {
+      return { status: null, reason: null };
+    }
+  };
+
+  const checkApprovalStatus = async (): Promise<ApprovalStatus> => {
+    if (!user) return null;
+    
+    const { status, reason } = await fetchApprovalStatus(user.id);
+    setApprovalStatus(status);
+    setRejectionReason(reason);
+    return status;
+  };
 
   useEffect(() => {
     // Configurar listener PRIMEIRO
@@ -43,7 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(() => {
             updateProfileFromMetadata(session.user);
+            // Buscar status de aprovação
+            fetchApprovalStatus(session.user.id).then(({ status, reason }) => {
+              setApprovalStatus(status);
+              setRejectionReason(reason);
+            });
           }, 0);
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setApprovalStatus(null);
+          setRejectionReason(null);
         }
       }
     );
@@ -52,7 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      
+      if (session?.user) {
+        fetchApprovalStatus(session.user.id).then(({ status, reason }) => {
+          setApprovalStatus(status);
+          setRejectionReason(reason);
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -102,20 +158,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
     
-    return { error };
-  };
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    if (!error) {
+      setApprovalStatus("pending");
+    }
     
     return { error };
   };
 
+  const signIn = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) {
+      return { error };
+    }
+
+    // Verificar status de aprovação
+    if (data.user) {
+      const { status, reason } = await fetchApprovalStatus(data.user.id);
+      setApprovalStatus(status);
+      setRejectionReason(reason);
+      return { error: null, approvalStatus: status, rejectionReason: reason ?? undefined };
+    }
+    
+    return { error: null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
+    setApprovalStatus(null);
+    setRejectionReason(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -134,7 +208,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, resetPassword, updatePassword }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading, 
+      approvalStatus,
+      rejectionReason,
+      signUp, 
+      signIn, 
+      signOut, 
+      resetPassword, 
+      updatePassword,
+      checkApprovalStatus 
+    }}>
       {children}
     </AuthContext.Provider>
   );

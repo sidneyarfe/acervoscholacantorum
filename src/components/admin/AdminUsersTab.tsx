@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { Users, Loader2, Shield, User, Crown, Pencil, Plus, Search } from "lucide-react";
+import { Users, Loader2, Shield, User, Crown, Pencil, Plus, Search, Clock, Check, X, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -18,6 +19,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Accordion,
@@ -25,10 +28,21 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useAdminUsers, AdminUser } from "@/hooks/useAdminData";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useAdminUsers, AdminUser, useApproveUser, useRejectUser } from "@/hooks/useAdminData";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserForm } from "./UserForm";
 import { CreateUserForm } from "./CreateUserForm";
+import { useToast } from "@/hooks/use-toast";
 
 const roleLabels: Record<string, { label: string; icon: typeof User }> = {
   admin: { label: "Administrador", icon: Crown },
@@ -59,21 +73,39 @@ const voiceColors: Record<string, string> = {
 export function AdminUsersTab() {
   const { user: currentUser } = useAuth();
   const { data: users, isLoading } = useAdminUsers();
+  const { toast } = useToast();
+  const approveUser = useApproveUser();
+  const rejectUser = useRejectUser();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [userToApprove, setUserToApprove] = useState<AdminUser | null>(null);
+  const [userToReject, setUserToReject] = useState<AdminUser | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  // Separar usuários pendentes dos aprovados
+  const pendingUsers = useMemo(() => {
+    if (!users) return [];
+    return users.filter((user) => user.approval_status === "pending");
+  }, [users]);
+
+  const approvedUsers = useMemo(() => {
+    if (!users) return [];
+    return users.filter((user) => user.approval_status === "approved");
+  }, [users]);
 
   const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    if (!searchQuery.trim()) return users;
+    if (!approvedUsers) return [];
+    if (!searchQuery.trim()) return approvedUsers;
     
     const query = searchQuery.toLowerCase();
-    return users.filter((user) =>
+    return approvedUsers.filter((user) =>
       user.display_name?.toLowerCase().includes(query) ||
       (user as any).full_name?.toLowerCase().includes(query) ||
       (user as any).email?.toLowerCase().includes(query)
     );
-  }, [users, searchQuery]);
+  }, [approvedUsers, searchQuery]);
 
   const usersByVoice = useMemo(() => {
     const grouped: Record<string, AdminUser[]> = {
@@ -95,6 +127,51 @@ export function AdminUsersTab() {
 
     return grouped;
   }, [filteredUsers]);
+
+  const handleApprove = async () => {
+    if (!userToApprove || !currentUser) return;
+    
+    try {
+      await approveUser.mutateAsync({
+        userId: userToApprove.id,
+        adminId: currentUser.id,
+      });
+      toast({
+        title: "Usuário aprovado",
+        description: `${userToApprove.display_name || userToApprove.full_name} foi aprovado com sucesso.`,
+      });
+      setUserToApprove(null);
+    } catch (error) {
+      toast({
+        title: "Erro ao aprovar",
+        description: "Não foi possível aprovar o usuário.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async () => {
+    if (!userToReject) return;
+    
+    try {
+      await rejectUser.mutateAsync({
+        userId: userToReject.id,
+        reason: rejectionReason || "Cadastro não aprovado pela administração.",
+      });
+      toast({
+        title: "Usuário recusado",
+        description: `${userToReject.display_name || userToReject.full_name} foi recusado.`,
+      });
+      setUserToReject(null);
+      setRejectionReason("");
+    } catch (error) {
+      toast({
+        title: "Erro ao recusar",
+        description: "Não foi possível recusar o usuário.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -175,13 +252,101 @@ export function AdminUsersTab() {
     );
   };
 
+  const renderPendingUserRow = (user: AdminUser) => {
+    return (
+      <TableRow key={user.id}>
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user.avatar_url || undefined} />
+              <AvatarFallback className="bg-gold/10 text-gold text-xs">
+                {user.display_name?.charAt(0)?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="font-medium truncate">
+                {user.display_name || user.full_name || "Sem nome"}
+              </p>
+              {user.email && (
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </p>
+              )}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell className="hidden md:table-cell">
+          {user.preferred_voice ? voiceLabels[user.preferred_voice] || user.preferred_voice : "-"}
+        </TableCell>
+        <TableCell className="hidden lg:table-cell text-muted-foreground">
+          {user.phone || "-"}
+        </TableCell>
+        <TableCell>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1 text-green-600 border-green-200 hover:bg-green-50"
+              onClick={() => setUserToApprove(user)}
+            >
+              <Check className="h-4 w-4" />
+              <span className="hidden sm:inline">Aprovar</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1 text-destructive border-destructive/20 hover:bg-destructive/10"
+              onClick={() => setUserToReject(user)}
+            >
+              <X className="h-4 w-4" />
+              <span className="hidden sm:inline">Recusar</span>
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <>
+      {/* Seção de Cadastros Pendentes */}
+      {pendingUsers.length > 0 && (
+        <Card className="mb-6 border-gold/30 bg-gold/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-gold">
+              <Clock className="h-5 w-5" />
+              Cadastros Pendentes
+              <Badge variant="secondary" className="bg-gold/20 text-gold">
+                {pendingUsers.length}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead className="hidden md:table-cell">Naipe</TableHead>
+                    <TableHead className="hidden lg:table-cell">Telefone</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingUsers.map(renderPendingUserRow)}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Lista de Usuários Aprovados */}
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-gold" />
-            Usuários ({users?.length || 0})
+            Usuários ({approvedUsers?.length || 0})
           </CardTitle>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
@@ -276,6 +441,7 @@ export function AdminUsersTab() {
         </CardContent>
       </Card>
 
+      {/* Dialog de Edição */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -291,12 +457,79 @@ export function AdminUsersTab() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog de Criação */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Criar Novo Usuário</DialogTitle>
           </DialogHeader>
           <CreateUserForm onClose={() => setIsCreating(false)} />
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog de Aprovação */}
+      <AlertDialog open={!!userToApprove} onOpenChange={() => setUserToApprove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aprovar Cadastro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja aprovar o cadastro de{" "}
+              <strong>{userToApprove?.display_name || userToApprove?.full_name}</strong>?
+              <br />
+              O usuário terá acesso completo ao sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleApprove}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Aprovar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Rejeição */}
+      <Dialog open={!!userToReject} onOpenChange={() => {
+        setUserToReject(null);
+        setRejectionReason("");
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              Recusar Cadastro
+            </DialogTitle>
+            <DialogDescription>
+              Informe o motivo da recusa para{" "}
+              <strong>{userToReject?.display_name || userToReject?.full_name}</strong>.
+              Este motivo será exibido ao usuário quando tentar fazer login.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Ex: Dados incompletos, não é membro do coro, etc."
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setUserToReject(null);
+              setRejectionReason("");
+            }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+            >
+              Recusar Cadastro
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

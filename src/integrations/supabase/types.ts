@@ -211,6 +211,7 @@ export type Database = {
           approval_status: Database["public"]["Enums"]["approval_status"]
           approved_at: string | null
           approved_by: string | null
+          avatar_drive_file_id: string | null
           avatar_url: string | null
           cpf: string | null
           created_at: string
@@ -221,6 +222,7 @@ export type Database = {
           has_vestment: boolean | null
           id: string
           join_date: string | null
+          member_status: Database["public"]["Enums"]["member_status"]
           phone: string | null
           preferred_voice: Database["public"]["Enums"]["voice_part"] | null
           rejection_reason: string | null
@@ -231,6 +233,7 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           approved_at?: string | null
           approved_by?: string | null
+          avatar_drive_file_id?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -241,6 +244,7 @@ export type Database = {
           has_vestment?: boolean | null
           id: string
           join_date?: string | null
+          member_status?: Database["public"]["Enums"]["member_status"]
           phone?: string | null
           preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
           rejection_reason?: string | null
@@ -251,6 +255,7 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           approved_at?: string | null
           approved_by?: string | null
+          avatar_drive_file_id?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -261,6 +266,7 @@ export type Database = {
           has_vestment?: boolean | null
           id?: string
           join_date?: string | null
+          member_status?: Database["public"]["Enums"]["member_status"]
           phone?: string | null
           preferred_voice?: Database["public"]["Enums"]["voice_part"] | null
           rejection_reason?: string | null
@@ -644,6 +650,7 @@ export type Database = {
       app_role: "admin" | "moderator" | "member"
       approval_status: "pending" | "approved" | "rejected"
       liturgical_rank: "solemnity" | "feast" | "memorial" | "optional_memorial"
+      member_status: "ativo" | "afastado" | "desligado"
       voice_part: "soprano" | "contralto" | "tenor" | "baixo"
       voicing_type: "unison" | "polyphonic" | "gregorian"
     }
@@ -776,6 +783,7 @@ export const Constants = {
       app_role: ["admin", "moderator", "member"],
       approval_status: ["pending", "approved", "rejected"],
       liturgical_rank: ["solemnity", "feast", "memorial", "optional_memorial"],
+      member_status: ["ativo", "afastado", "desligado"],
       voice_part: ["soprano", "contralto", "tenor", "baixo"],
       voicing_type: ["unison", "polyphonic", "gregorian"],
     },

@@ -70,6 +70,12 @@ const voiceColors: Record<string, string> = {
   baixo: "text-emerald-600",
 };
 
+const statusLabels: Record<string, { label: string; className: string }> = {
+  ativo: { label: "Ativo", className: "bg-green-100 text-green-700 border-green-200" },
+  afastado: { label: "Afastado", className: "bg-amber-100 text-amber-700 border-amber-200" },
+  desligado: { label: "Desligado", className: "bg-red-100 text-red-700 border-red-200" },
+};
+
 export function AdminUsersTab() {
   const { user: currentUser } = useAuth();
   const { data: users, isLoading } = useAdminUsers();
@@ -187,6 +193,8 @@ export function AdminUsersTab() {
     const hasStole = (user as any).has_stole;
     const hasVestment = (user as any).has_vestment;
     const joinDate = (user as any).join_date;
+    const memberStatus = (user as any).member_status || "ativo";
+    const statusInfo = statusLabels[memberStatus] || statusLabels.ativo;
 
     return (
       <TableRow key={user.id}>
@@ -232,6 +240,11 @@ export function AdminUsersTab() {
               <span className="text-muted-foreground">-</span>
             )}
           </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className={statusInfo.className}>
+            {statusInfo.label}
+          </Badge>
         </TableCell>
         <TableCell>
           <Badge variant="outline" className={roleColors[user.role]}>
@@ -387,6 +400,7 @@ export function AdminUsersTab() {
                             <TableHead>Usuário</TableHead>
                             <TableHead className="hidden lg:table-cell">Data de Entrada</TableHead>
                             <TableHead className="hidden lg:table-cell">Vestes</TableHead>
+                            <TableHead>Status</TableHead>
                             <TableHead>Papel</TableHead>
                             <TableHead className="w-12"></TableHead>
                           </TableRow>
@@ -420,11 +434,12 @@ export function AdminUsersTab() {
                 <AccordionContent>
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader>
+                    <TableHeader>
                         <TableRow>
                           <TableHead>Usuário</TableHead>
                           <TableHead className="hidden lg:table-cell">Data de Entrada</TableHead>
                           <TableHead className="hidden lg:table-cell">Vestes</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead>Papel</TableHead>
                           <TableHead className="w-12"></TableHead>
                         </TableRow>

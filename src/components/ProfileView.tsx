@@ -24,12 +24,19 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const VOICE_MAP: Record<string, string> = {
   soprano: "Soprano",
   contralto: "Contralto",
   tenor: "Tenor",
   baixo: "Baixo",
+};
+
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  ativo: { label: "Ativo", variant: "default" },
+  afastado: { label: "Afastado", variant: "secondary" },
+  desligado: { label: "Desligado", variant: "destructive" },
 };
 
 export function ProfileView() {
@@ -62,6 +69,9 @@ export function ProfileView() {
     }
   };
 
+  const memberStatus = (profile as any)?.member_status || "ativo";
+  const statusInfo = STATUS_MAP[memberStatus] || STATUS_MAP.ativo;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header title="Perfil" showLogo={false} />
@@ -75,9 +85,13 @@ export function ProfileView() {
             <Card variant="gold">
               <CardContent className="p-5 lg:p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-gold/20 flex items-center justify-center">
-                    <User className="w-8 h-8 lg:w-10 lg:h-10 text-gold" />
-                  </div>
+                  <Avatar className="w-16 h-16 lg:w-20 lg:h-20">
+                    <AvatarImage src={profile?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-gold/20 text-gold text-xl lg:text-2xl">
+                      {profile?.full_name?.charAt(0)?.toUpperCase() || 
+                       profile?.display_name?.charAt(0)?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1">
                     <h2 className="font-display text-lg lg:text-xl font-semibold">
                       {profile?.full_name || profile?.display_name || "Membro da Schola"}
@@ -85,11 +99,16 @@ export function ProfileView() {
                     <p className="text-sm text-muted-foreground">
                       {user?.email}
                     </p>
-                    {profile?.preferred_voice && (
-                      <Badge variant="gold" className="mt-2">
-                        {VOICE_MAP[profile.preferred_voice]}
+                    <div className="flex items-center gap-2 mt-2">
+                      {profile?.preferred_voice && (
+                        <Badge variant="gold">
+                          {VOICE_MAP[profile.preferred_voice]}
+                        </Badge>
+                      )}
+                      <Badge variant={statusInfo.variant}>
+                        {statusInfo.label}
                       </Badge>
-                    )}
+                    </div>
                   </div>
                   <Button 
                     variant="ghost" 
@@ -106,20 +125,9 @@ export function ProfileView() {
             {/* Informações Pessoais */}
             {profile && (
               <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-display text-lg lg:text-xl font-semibold">
-                    Minhas Informações
-                  </h2>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setEditOpen(true)}
-                    className="gap-2"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Editar
-                  </Button>
-                </div>
+                <h2 className="font-display text-lg lg:text-xl font-semibold mb-3">
+                  Minhas Informações
+                </h2>
                 <Card>
                   <CardContent className="p-4 space-y-4">
                     {/* Dados Pessoais */}
@@ -203,7 +211,7 @@ export function ProfileView() {
 
                     {!profile.full_name && !profile.phone && !profile.address && (
                       <p className="text-sm text-muted-foreground text-center py-2">
-                        Clique em "Editar" para adicionar suas informações
+                        Clique no lápis acima para adicionar suas informações
                       </p>
                     )}
                   </CardContent>

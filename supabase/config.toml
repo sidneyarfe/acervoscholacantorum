@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.rename-drive-folder]
 verify_jwt = false
+
+[functions.upload-profile-photo]
+verify_jwt = true

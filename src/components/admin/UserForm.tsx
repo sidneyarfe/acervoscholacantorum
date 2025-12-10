@@ -35,6 +35,7 @@ const userSchema = z.object({
   has_stole: z.boolean().default(false),
   has_vestment: z.boolean().default(false),
   preferred_voice: z.enum(["soprano", "contralto", "tenor", "baixo"]).optional().nullable(),
+  member_status: z.enum(["ativo", "afastado", "desligado"]),
   role: z.enum(["admin", "moderator", "member"]),
 });
 
@@ -63,6 +64,7 @@ export function UserForm({ user, onClose, isCurrentUser }: UserFormProps) {
       has_stole: (user as any).has_stole || false,
       has_vestment: (user as any).has_vestment || false,
       preferred_voice: user.preferred_voice || null,
+      member_status: (user as any).member_status || "ativo",
       role: user.role,
     },
   });
@@ -82,6 +84,7 @@ export function UserForm({ user, onClose, isCurrentUser }: UserFormProps) {
         has_stole: data.has_stole,
         has_vestment: data.has_vestment,
         preferred_voice: data.preferred_voice,
+        member_status: data.member_status,
       } as any);
 
       // Update role if not current user
@@ -226,6 +229,32 @@ export function UserForm({ user, onClose, isCurrentUser }: UserFormProps) {
                     <SelectItem value="contralto">Contralto</SelectItem>
                     <SelectItem value="tenor">Tenor</SelectItem>
                     <SelectItem value="baixo">Baixo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="member_status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status na Schola</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="afastado">Afastado</SelectItem>
+                    <SelectItem value="desligado">Desligado</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

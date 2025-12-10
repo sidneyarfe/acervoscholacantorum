@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,7 +20,11 @@ import {
 } from "@/components/ui/dialog";
 import { useUpdateProfile, Profile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Usuários comuns NÃO podem alterar naipe - apenas informações pessoais básicas
 const profileSchema = z.object({
@@ -38,7 +43,12 @@ interface ProfileEditFormProps {
 }
 
 export function ProfileEditForm({ profile, open, onOpenChange }: ProfileEditFormProps) {
+  const { user } = useAuth();
   const updateProfile = useUpdateProfile();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(profile.avatar_url);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -49,6 +59,64 @@ export function ProfileEditForm({ profile, open, onOpenChange }: ProfileEditForm
       address: profile.address || "",
     },
   });
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Formato inválido. Use JPG, PNG ou WEBP.");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 5MB.");
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPhotoPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const session = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-profile-photo`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao fazer upload");
+      }
+
+      const result = await response.json();
+      setPhotoPreview(result.imageUrl);
+      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+      toast.success("Foto atualizada com sucesso!");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao fazer upload da foto");
+      setPhotoPreview(profile.avatar_url);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
@@ -71,6 +139,44 @@ export function ProfileEditForm({ profile, open, onOpenChange }: ProfileEditForm
         <DialogHeader>
           <DialogTitle>Editar Meu Perfil</DialogTitle>
         </DialogHeader>
+
+        {/* Photo Upload Section */}
+        <div className="flex flex-col items-center gap-3 pb-4 border-b">
+          <div className="relative">
+            <Avatar className="w-24 h-24">
+              <AvatarImage src={photoPreview || undefined} />
+              <AvatarFallback className="bg-gold/20 text-gold text-2xl">
+                {profile.full_name?.charAt(0)?.toUpperCase() || 
+                 profile.display_name?.charAt(0)?.toUpperCase() || <User className="w-8 h-8" />}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingPhoto}
+            >
+              {isUploadingPhoto ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
+          <p className="text-xs text-muted-foreground">
+            Clique no ícone para alterar a foto (JPG, PNG, WEBP - max 5MB)
+          </p>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField

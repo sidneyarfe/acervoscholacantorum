@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, approvalStatus } = useAuth();
 
   if (loading) {
     return (
@@ -22,6 +22,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Verificar status de aprovação
+  if (approvalStatus === "pending") {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
+  if (approvalStatus === "rejected") {
     return <Navigate to="/auth" replace />;
   }
 

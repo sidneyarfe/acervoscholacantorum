@@ -213,6 +213,10 @@ export function useDeleteCelebration() {
 // ===== USERS =====
 export interface AdminUser extends Profile {
   role: "admin" | "moderator" | "member";
+  approval_status: "pending" | "approved" | "rejected";
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
 }
 
 export function useAdminUsers() {
@@ -233,7 +237,52 @@ export function useAdminUsers() {
       return profiles.map((profile) => ({
         ...profile,
         role: (roles.find((r) => r.user_id === profile.id)?.role || "member") as "admin" | "moderator" | "member",
+        approval_status: (profile as any).approval_status || "approved",
+        approved_by: (profile as any).approved_by || null,
+        approved_at: (profile as any).approved_at || null,
+        rejection_reason: (profile as any).rejection_reason || null,
       }));
+    },
+  });
+}
+
+// ===== USER APPROVAL =====
+export function useApproveUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, adminId }: { userId: string; adminId: string }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          approval_status: "approved",
+          approved_by: adminId,
+          approved_at: new Date().toISOString(),
+          rejection_reason: null,
+        })
+        .eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+  });
+}
+
+export function useRejectUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          approval_status: "rejected",
+          rejection_reason: reason,
+        })
+        .eq("id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
   });
 }

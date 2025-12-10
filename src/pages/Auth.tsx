@@ -99,16 +99,18 @@ export default function Auth() {
   const [joinDate, setJoinDate] = useState("");
   const [hasStole, setHasStole] = useState(false);
   const [hasVestment, setHasVestment] = useState(false);
-  const { signUp, signIn, user, resetPassword } = useAuth();
+  const { signUp, signIn, user, resetPassword, approvalStatus } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
 
   useEffect(() => {
-    if (user) {
+    if (user && approvalStatus === "approved") {
       navigate("/");
+    } else if (user && approvalStatus === "pending") {
+      navigate("/pending-approval");
     }
-  }, [user, navigate]);
+  }, [user, approvalStatus, navigate]);
 
   const validateForm = () => {
     try {
@@ -173,10 +175,10 @@ export default function Auth() {
           }
         } else {
           toast({
-            title: "Conta criada!",
-            description: "Bem-vindo à Schola Cantorum!",
+            title: "Cadastro enviado!",
+            description: "Aguarde a aprovação de um administrador.",
           });
-          navigate("/");
+          navigate("/pending-approval");
         }
       } else if (mode === "forgot") {
         const { error } = await resetPassword(email);
@@ -191,10 +193,10 @@ export default function Auth() {
           setRecoveryEmailSent(true);
         }
       } else {
-        const { error } = await signIn(email, password);
+        const result = await signIn(email, password);
         
-        if (error) {
-          if (error.message.includes("Invalid login")) {
+        if (result.error) {
+          if (result.error.message.includes("Invalid login")) {
             toast({
               title: "Credenciais inválidas",
               description: "Email ou senha incorretos.",
@@ -203,10 +205,22 @@ export default function Auth() {
           } else {
             toast({
               title: "Erro no login",
-              description: error.message,
+              description: result.error.message,
               variant: "destructive",
             });
           }
+        } else if (result.approvalStatus === "pending") {
+          toast({
+            title: "Cadastro em análise",
+            description: "Seu cadastro ainda está aguardando aprovação.",
+          });
+          navigate("/pending-approval");
+        } else if (result.approvalStatus === "rejected") {
+          toast({
+            title: "Cadastro recusado",
+            description: result.rejectionReason || "Seu cadastro foi recusado. Entre em contato com a administração.",
+            variant: "destructive",
+          });
         } else {
           navigate("/");
         }
